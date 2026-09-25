@@ -86,7 +86,7 @@ export function createPlayerVisual(template) {
   const idle = findClip(["idle","stand"]);
   const walk = findClip(["walk","run","move"]);
   const bodyHit = new THREE.Mesh(
-    new THREE.CapsuleGeometry(0.30, 0.70, 6, 10),
+    new THREE.BoxGeometry(0.62, 1.24, 0.48),
     new THREE.MeshBasicMaterial({transparent:true, opacity:0, depthWrite:false})
   );
   bodyHit.position.set(0,0.78,0);
