@@ -23,8 +23,10 @@ export function updatePlayer(player, state, input, dt, obstacles) {
   const speedUnits = input.sprint && (sx || sz) ? 9.2 : 7.0;
   const speed = speedUnits * dt;
   const yaw = state.yaw;
-  const nx = player.position.x + sx * Math.cos(yaw) * speed - sz * Math.sin(yaw) * speed;
-  const nz = player.position.z + sx * Math.sin(yaw) * speed + sz * Math.cos(yaw) * speed;
+  // Convert local WASD movement into the same coordinate system as the camera.
+  // W (sz=-1) must always move toward the direction the player is looking.
+  const nx = player.position.x + (sx * Math.cos(yaw) + sz * Math.sin(yaw)) * speed;
+  const nz = player.position.z + (-sx * Math.sin(yaw) + sz * Math.cos(yaw)) * speed;
 
   if (!blocked(nx, player.position.z, 0.42, obstacles)) player.position.x = nx;
   if (!blocked(player.position.x, nz, 0.42, obstacles)) player.position.z = nz;
