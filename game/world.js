@@ -69,17 +69,46 @@ export function createCamera() {
 
 export function createRemote(scene) {
   const group = new THREE.Group();
-  const body = new THREE.Mesh(
-    new THREE.BoxGeometry(0.8, 1.4, 0.5),
-    new THREE.MeshStandardMaterial({color: 0xc34b4b})
-  );
-  body.position.y = -0.7;
-  const head = new THREE.Mesh(
-    new THREE.SphereGeometry(0.3, 12, 8),
-    new THREE.MeshStandardMaterial({color: 0xd89b76})
-  );
-  head.position.y = 0.15;
-  group.add(body, head);
+  const armor = new THREE.MeshStandardMaterial({color:0x263746, metalness:0.35, roughness:0.55});
+  const dark = new THREE.MeshStandardMaterial({color:0x11171c, metalness:0.25, roughness:0.75});
+  const skin = new THREE.MeshStandardMaterial({color:0xc78663, roughness:0.8});
+  const visorMat = new THREE.MeshStandardMaterial({color:0x4fc0d8, metalness:0.2, roughness:0.3, emissive:0x102f39});
+
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.72,0.92,0.40), armor);
+  torso.position.y = -0.78;
+  torso.userData.hitbox = "body";
+
+  const chest = new THREE.Mesh(new THREE.BoxGeometry(0.52,0.42,0.06), dark);
+  chest.position.set(0,-0.70,-0.23);
+
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.285,16,12), skin);
+  head.position.y = -0.14;
+  head.userData.hitbox = "head";
+
+  const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.305,16,10,0,Math.PI*2,0,Math.PI*0.55), dark);
+  helmet.position.y = -0.10;
+
+  const visor = new THREE.Mesh(new THREE.BoxGeometry(0.28,0.08,0.02), visorMat);
+  visor.position.set(0,-0.10,-0.29);
+
+  const armL = new THREE.Mesh(new THREE.BoxGeometry(0.18,0.82,0.20), armor);
+  armL.position.set(-0.48,-0.78,0);
+  armL.rotation.z = -0.08;
+  armL.userData.hitbox = "body";
+  const armR = armL.clone();
+  armR.position.x = 0.48;
+  armR.rotation.z = 0.08;
+
+  const belt = new THREE.Mesh(new THREE.BoxGeometry(0.74,0.12,0.43), dark);
+  belt.position.y = -1.17;
+
+  const legL = new THREE.Mesh(new THREE.BoxGeometry(0.24,0.90,0.24), dark);
+  legL.position.set(-0.19,-1.68,0);
+  legL.userData.hitbox = "body";
+  const legR = legL.clone();
+  legR.position.x = 0.19;
+
+  group.add(torso,chest,head,helmet,visor,armL,armR,belt,legL,legR);
   scene.add(group);
   return group;
 }
