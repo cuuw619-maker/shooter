@@ -44,6 +44,16 @@ let engine = null;
 let audio = null;
 let fx = null;
 let wasGrounded = true;
+let cameraRecoil = 0;
+let cameraRoll = 0;
+let roundNumber = 1;
+let roundState = "live";
+let roundResetAt = 0;
+let matchResetAt = 0;
+let matchWinner = null;
+const ROUNDS_TO_WIN = 5;
+const ROUND_DELAY = 2600;
+const MATCH_DELAY = 4200;
 
 function startGame() {
   if (scene) return;
@@ -78,6 +88,8 @@ function startGame() {
   });
   hud.showGame();
   hud.room(roomCode);
+  hud.rounds(roundNumber, score, remoteScore);
+  hud.roundStatus("ПЕРВЫЙ ДО " + ROUNDS_TO_WIN);
   hud.waiting(false);
   requestAnimationFrame(loop);
 }
@@ -129,7 +141,7 @@ function setupInput() {
     if (document.pointerLockElement === renderer.domElement) {
       const sensitivity = 0.0018;
       yaw -= e.movementX * sensitivity;
-      pitch -= e.movementY * sensitivity;
+      pitch += e.movementY * sensitivity;
       pitch = Math.max(-1.48, Math.min(1.48, pitch));
     }
   });
@@ -171,6 +183,35 @@ function setupInput() {
   });
 }
 
+function finishRound(winnerSide) {
+  if (roundState !== "live") return;
+
+  const localWon = (winnerSide === "host") === isHost;
+  if (localWon) {
+    score++;
+    hud.roundWin(true);
+  } else {
+    remoteScore++;
+    hud.roundWin(false);
+  }
+
+  roundState = "transition";
+  roundResetAt = performance.now() + ROUND_DELAY;
+  health = 100;
+  hud.health(100);
+  respawn(player, isHost);
+  hud.rounds(roundNumber, score, remoteScore);
+
+  if (score >= ROUNDS_TO_WIN || remoteScore >= ROUNDS_TO_WIN) {
+    matchWinner = localWon ? "local" : "remote";
+    matchResetAt = performance.now() + MATCH_DELAY;
+    hud.match(matchWinner === "local");
+  } else {
+    roundNumber++;
+    hud.roundStatus("РАУНД ЗАВЕРШЁН • СЛЕДУЮЩИЙ " + roundNumber);
+  }
+}
+
 function handleData(data) {
   const packet = sync.receive(data);
   if (!packet) return;
@@ -178,26 +219,23 @@ function handleData(data) {
     remoteState = data;
     if (!remoteMesh) remoteMesh = createRemote(scene);
     remoteScore = packet.remoteScore;
-    hud.score(score, remoteScore);
+    hud.rounds(roundNumber, score, remoteScore);
   } else if (data.t === "score") {
     remoteScore = packet.remoteScore;
-    hud.score(score, remoteScore);
+    hud.rounds(roundNumber, score, remoteScore);
+  } else if (data.t === "roundEnd") {
+    finishRound(String(data.winner));
   } else if (data.t === "hit") {
+    if (roundState !== "live") return;
     health = Math.max(0, health - (Number(data.damage) || 20));
     hud.health(health);
     hud.hit(Boolean(data.headshot));
     audio?.hurt();
     if (health === 0) {
-      room?.send({t:"death"});
-      health = 100;
-      hud.health(100);
-      respawn(player, isHost);
+      const winner = isHost ? "guest" : "host";
+      room?.send({t:"roundEnd", winner});
+      finishRound(winner);
     }
-  } else if (data.t === "death") {
-    score++;
-    hud.score(score, remoteScore);
-    sync?.sendScore(score);
-    hud.kill();
   }
 }
 
@@ -247,9 +285,29 @@ function loop() {
   const now = performance.now();
 
   // Apply the newest look input before physics so movement and camera share the exact same yaw.
-  pitch = Math.max(-1.45, Math.min(1.45, pitch + input.lookY * -0.035));
+  if (roundState === "transition" && now >= roundResetAt) {
+    roundState = "live";
+    hud.roundStatus(matchWinner ? "НОВЫЙ МАТЧ" : "РАУНД " + roundNumber);
+  }
+  if (matchWinner && now >= matchResetAt) {
+    score = 0;
+    remoteScore = 0;
+    roundNumber = 1;
+    roundState = "live";
+    roundResetAt = 0;
+    matchResetAt = 0;
+    matchWinner = null;
+    hud.rounds(roundNumber, score, remoteScore);
+    hud.roundStatus("ПЕРВЫЙ ДО " + ROUNDS_TO_WIN);
+  }
+
+  pitch = Math.max(-1.45, Math.min(1.45, pitch + input.lookY * 0.035));
   yaw -= input.lookX * 0.045;
+  cameraRecoil *= 0.82;
+  cameraRoll *= 0.80;
   applyLook(player, camera, {yaw, pitch});
+  camera.rotation.x -= cameraRecoil;
+  camera.rotation.z = cameraRoll;
 
   const beforeGrounded = player.userData.grounded === true;
   updatePlayer(player, {yaw}, input, dt, obstacles);
@@ -291,7 +349,7 @@ function loop() {
     hud.weapon(weapons.config().name);
     hud.ammo(weapons.config().name, a.mag, a.reserve, weapons.reloading);
   }
-  if (fireHeld && weapons) {
+  if (roundState === "live" && fireHeld && weapons) {
     weapons.fire({
       triggerPressed: firePressed,
       now,
@@ -303,6 +361,9 @@ function loop() {
       onReload: () => audio?.reload(),
       onShot: info => {
         audio?.shot(info.weapon);
+        cameraRecoil += info.config.recoil * 0.62;
+        cameraRoll += (Math.random() - 0.5) * info.config.recoil * 0.42;
+        pitch -= info.config.recoil * 0.22;
         fx?.tracer(info.from.clone(), info.to.clone());
         fx?.burst(info.from.clone(), info.direction.clone(), "muzzle");
       },
@@ -310,8 +371,6 @@ function loop() {
         audio?.hit();
         if (info.point) fx?.burst(info.point, info.normal || new THREE.Vector3(0,1,0), "hit");
         room?.send({t:"hit", damage: info.damage, headshot: info.headshot});
-        hud.score(score, remoteScore);
-        sync?.sendScore(score);
       }
     });
     firePressed = false;
