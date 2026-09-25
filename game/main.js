@@ -34,7 +34,9 @@ let isHost = false;
 let roomCode = "";
 let weapons = null;
 let fireHeld = false;
+let firePressed = false;
 let raycaster = null;
+let solids = [];
 
 function startGame() {
   if (scene) return;
@@ -42,6 +44,7 @@ function startGame() {
   const world = createWorld();
   scene = world.scene;
   obstacles = world.obstacles;
+  solids = world.solids || [];
   renderer = createRenderer();
   camera = createCamera();
   clock = new THREE.Clock();
@@ -114,7 +117,10 @@ function setupInput() {
     }
   });
   renderer.domElement.addEventListener("mousedown", e => {
-    if (e.button === 0 && document.pointerLockElement === renderer.domElement) fireHeld = true;
+    if (e.button === 0 && document.pointerLockElement === renderer.domElement) {
+      fireHeld = true;
+      firePressed = true;
+    }
   });
   addEventListener("mouseup", e => {
     if (e.button === 0) fireHeld = false;
@@ -127,9 +133,10 @@ function setupInput() {
     input.keyboardX = input.keyboardZ = 0;
     input.sprint = false;
     fireHeld = false;
+    firePressed = false;
   });
   renderer.domElement.addEventListener("contextmenu", e => e.preventDefault());
-  input.fire = () => { fireHeld = true; };
+  input.fire = () => { fireHeld = true; firePressed = true; };
   input.stopFire = () => { fireHeld = false; };
   input.jump = () => {
     if (player?.userData.grounded) player.userData.jumpQueued = true;
@@ -223,10 +230,13 @@ function loop() {
   }
   if (fireHeld && weapons) {
     weapons.fire({
+      triggerHeld: fireHeld,
+      triggerPressed: firePressed,
       now: performance.now(),
       raycaster,
       camera,
       remoteMesh,
+      obstacles: solids,
       onDry: () => {},
       onShot: () => {},
       onHit: damage => {
@@ -236,6 +246,9 @@ function loop() {
         sync?.sendScore(score);
       }
     });
+    firePressed = false;
+  } else {
+    firePressed = false;
   }
   if (room?.isConnected() && performance.now() - lastNet > 50) {
     lastNet = performance.now();
