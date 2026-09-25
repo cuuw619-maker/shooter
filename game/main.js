@@ -17,6 +17,7 @@ const input = {
 let room = null;
 let sync = null;
 let scene = null;
+let obstacles = [];
 let renderer = null;
 let camera = null;
 let player = null;
@@ -37,6 +38,7 @@ function startGame() {
   window.__ROOM_CODE = roomCode;
   const world = createWorld();
   scene = world.scene;
+  obstacles = world.obstacles;
   renderer = createRenderer();
   camera = createCamera();
   clock = new THREE.Clock();
@@ -161,7 +163,7 @@ function connectRoom(code, host) {
 function loop() {
   requestAnimationFrame(loop);
   const dt = Math.min(clock.getDelta(), 0.05);
-  updatePlayer(player, {yaw}, input, dt, scene.children.filter(o => o.userData.obstacle));
+  updatePlayer(player, {yaw}, input, dt, obstacles);
   if (remoteMesh && remoteState) {
     remoteMesh.position.lerp(new THREE.Vector3(remoteState.x, remoteState.y - 1.6, remoteState.z), 0.25);
     remoteMesh.rotation.y = remoteState.yaw;
