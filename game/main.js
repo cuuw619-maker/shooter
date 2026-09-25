@@ -153,6 +153,7 @@ function connectRoom(code, host) {
     }
   });
 
+  sync = createSync(room);
   if (host) room.create().catch(error => hud.status("Не удалось создать комнату: " + (error.type || error.message)));
   else room.join().catch(error => hud.status("Не удалось войти: " + (error.type || error.message)));
 }
@@ -177,7 +178,6 @@ function loop() {
 
 export function init() {
   sync = null;
-  setupFullscreen(hud);
   document.getElementById("host").addEventListener("click", () => {
     const code = document.getElementById("hostCode").value.replace(/\D/g, "").slice(0, 5);
     if (!/^\d{5}$/.test(code)) {
