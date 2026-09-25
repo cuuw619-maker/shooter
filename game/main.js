@@ -1,24 +1,24 @@
 import {createWorld, createRenderer, createCamera, createRemote} from "./world.js";
 import {createPlayer, respawn, getState, applyLook} from "./player.js";
-import {updatePlayer} from "./physics.js";
+import {updatePlayer, isBlocked} from "./physics.js";
 import {createWeaponSystem} from "./weapons.js";
 import {Room} from "../network/room.js";
 import {createSync} from "../network/sync.js";
-import {createHud, setupFullscreen} from "../ui/hud.js?v=20260925-5";
-import {setupMobile} from "../ui/mobile.js";
+import {createHud, setupFullscreen} from "../ui/hud.js?v=20260925-6";
+import {setupMobile} from "../ui/mobile.js?v=20260925-2";
 import {createEngine} from "../engine/core.js";
 import {createAudioEngine} from "../engine/audio.js";
 import {createFx} from "../engine/fx.js";
 import {
   loadMapAsset, loadPlayerAsset, normalizeMap,
   buildMapColliders, collectMapSolids, createPlayerVisual
-} from "./assets.js?v=20260925-5";
+} from "./assets.js?v=20260925-7";
 
 const THREE = window.THREE;
 const hud = createHud();
 const input = {
   keyboardX: 0, keyboardZ: 0, moveX: 0, moveY: 0,
-  lookX: 0, lookY: 0, sprint: false, fire() {}, jump() {}
+  lookX: 0, lookY: 0, sprint: false, fire() {}, stopFire() {}, jump() {}, aim() {}
 };
 
 let room = null;
@@ -58,6 +58,8 @@ let mapAssetError = "";
 let playerAssetError = "";
 let cameraRecoil = 0;
 let cameraRoll = 0;
+let targetFov = 77;
+let lastScopeState = false;
 let roundNumber = 1;
 let roundState = "live";
 let roundResetAt = 0;
@@ -119,6 +121,7 @@ function startGame() {
     scene.add(importedMap);
     obstacles = buildMapColliders(importedMap);
     solids = collectMapSolids(importedMap);
+    positionAtOpenSpawn(player, isHost, obstacles);
     mapAssetReady = true;
     updateAssetStatus();
   }).catch(error => {
@@ -198,9 +201,15 @@ function setupInput() {
       firePressed = true;
       audio?.unlock();
     }
+    if (e.button === 2 && document.pointerLockElement === renderer.domElement) {
+      audio?.unlock();
+      input.aim?.(true);
+      e.preventDefault();
+    }
   });
   addEventListener("mouseup", e => {
     if (e.button === 0) fireHeld = false;
+    if (e.button === 2) input.aim?.(false);
   });
   addEventListener("pointerlockchange", () => {
     if (document.pointerLockElement !== renderer.domElement) fireHeld = false;
@@ -215,6 +224,12 @@ function setupInput() {
   renderer.domElement.addEventListener("contextmenu", e => e.preventDefault());
   input.fire = () => { audio?.unlock(); fireHeld = true; firePressed = true; };
   input.stopFire = () => { fireHeld = false; };
+  input.aim = value => {
+    const before = Boolean(weapons?.aiming);
+    weapons?.setAim(Boolean(value));
+    const after = Boolean(weapons?.aiming);
+    if (before !== after) audio?.aim(after);
+  };
   input.jump = () => {
     audio?.unlock();
     if (player?.userData.grounded) {
@@ -368,6 +383,7 @@ function loop() {
     hud.roundStatus("РАУНД " + roundNumber);
   }
 
+  const lookScale = input.mobileSettings ? input.mobileSettings.lookSensitivity : 1;
   pitch = Math.max(-1.45, Math.min(1.45, pitch - input.lookY * 0.035));
   yaw -= input.lookX * 0.045;
   cameraRecoil *= 0.82;
@@ -396,7 +412,7 @@ function loop() {
       const dx = remoteMesh.position.x - (remoteController.lastX ?? remoteMesh.position.x);
       const dz = remoteMesh.position.z - (remoteController.lastZ ?? remoteMesh.position.z);
       const remoteSpeed = Math.hypot(dx, dz) / Math.max(dt, 0.001);
-      remoteController.update(dt, remoteSpeed > 0.55);
+      remoteController.update(dt, remoteSpeed > 0.55, remoteSpeed, false);
       remoteController.lastX = remoteMesh.position.x;
       remoteController.lastZ = remoteMesh.position.z;
     } else {
@@ -418,7 +434,26 @@ function loop() {
     }
   }
   engine?.update(dt, now);
-  weapons?.tick(now);
+
+  const aiming = Boolean(weapons?.aiming);
+  targetFov = aiming ? (weapons.config()?.adsFov || 28) : 77;
+  camera.fov += (targetFov - camera.fov) * Math.min(1, dt * 11);
+  camera.updateProjectionMatrix();
+  const scope = document.getElementById("scopeOverlay");
+  const scopeState = aiming && weapons?.current === "sniper";
+  if (scope && scopeState !== lastScopeState) {
+    scope.classList.toggle("active", scopeState);
+    lastScopeState = scopeState;
+  }
+
+  weapons?.tick(now, {
+    onBolt: () => audio?.bolt(),
+    onReloadComplete: id => {
+      audio?.reload();
+      if (id === "sniper") audio?.bolt();
+    }
+  });
+
   if (weapons) {
     const a = weapons.ammo();
     hud.weapon(weapons.config().name);
@@ -457,6 +492,19 @@ function loop() {
     sync.sendState(getState(player, {yaw, pitch}, score));
   }
   renderer.render(scene, camera);
+}
+
+function positionAtOpenSpawn(target, host, colliders) {
+  const preferred = host
+    ? [[-8,0],[-12,0],[-8,-6],[-8,6],[-16,0]]
+    : [[8,0],[12,0],[8,-6],[8,6],[16,0]];
+  for (const [x,z] of preferred) {
+    if (!isBlocked(x,z,0.40,colliders)) {
+      target.position.set(x,1.6,z);
+      target.userData.grounded = true;
+      return;
+    }
+  }
 }
 
 export function init() {
