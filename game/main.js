@@ -131,7 +131,9 @@ function setupInput() {
   renderer.domElement.addEventListener("contextmenu", e => e.preventDefault());
   input.fire = () => { fireHeld = true; };
   input.stopFire = () => { fireHeld = false; };
-  input.jump = () => { if (player) player.userData.jumpQueued = true; };
+  input.jump = () => {
+    if (player?.userData.grounded) player.userData.jumpQueued = true;
+  };
   addEventListener("resize", () => {
     if (!camera || !renderer) return;
     camera.aspect = innerWidth / innerHeight;
