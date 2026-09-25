@@ -101,10 +101,8 @@ function setupInput() {
     if (e.button === 0) fireHeld = false;
   });
   addEventListener("blur", () => { fireHeld = false; });
-  input.fire = () => {
-    fireHeld = true;
-    setTimeout(() => { fireHeld = false; }, 70);
-  };
+  input.fire = () => { fireHeld = true; };
+  input.stopFire = () => { fireHeld = false; };
   input.jump = () => { player.position.y = 2.5; };
   addEventListener("resize", () => {
     if (!camera || !renderer) return;
