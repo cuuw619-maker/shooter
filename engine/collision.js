@@ -175,17 +175,25 @@ export class CollisionWorld {
 
     let px = x;
     let pz = z;
+    let collidedX = false;
+    let collidedZ = false;
 
     for (let i = 0; i < steps; i++) {
       const targetX = px + stepX;
       const targetZ = pz + stepZ;
       const resolved = this.resolve(targetX, targetZ, radius);
 
-      if (Math.abs(resolved.x - targetX) < 0.00001 && Math.abs(resolved.z - targetZ) < 0.00001) {
+      const hitX = Math.abs(resolved.x - targetX) > 0.00001;
+      const hitZ = Math.abs(resolved.z - targetZ) > 0.00001;
+
+      if (!hitX && !hitZ) {
         px = targetX;
         pz = targetZ;
         continue;
       }
+
+      collidedX ||= hitX;
+      collidedZ ||= hitZ;
 
       // Apply the resolved point and then try the tangential part of the motion.
       px = resolved.x;
@@ -201,7 +209,7 @@ export class CollisionWorld {
     }
 
     const final = this.resolve(px, pz, radius);
-    return {x: final.x, z: final.z};
+    return {x: final.x, z: final.z, collidedX, collidedZ};
   }
 }
 
