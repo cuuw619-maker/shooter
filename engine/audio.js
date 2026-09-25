@@ -2,6 +2,7 @@ export function createAudioEngine() {
   let ctx = null;
   let master = null;
   let lastShot = 0;
+  let lastStep = 0;
 
   function ensure() {
     if (!ctx) {
@@ -91,6 +92,21 @@ export function createAudioEngine() {
     },
     hurt() {
       tone({frequency:170, endFrequency:90, duration:0.09, gain:0.06, type:"sawtooth"});
+    },
+    step(sprint=false) {
+      const now = performance.now();
+      if (now - lastStep < (sprint ? 290 : 370)) return;
+      lastStep = now;
+      noise({duration:0.045, gain:sprint ? 0.045 : 0.032, highpass:90, lowpass:680});
+      tone({frequency:sprint ? 92 : 78, endFrequency:sprint ? 55 : 48, duration:0.055, gain:sprint ? 0.025 : 0.018, type:"triangle"});
+    },
+    land() {
+      noise({duration:0.075, gain:0.055, highpass:75, lowpass:520});
+      tone({frequency:105, endFrequency:52, duration:0.085, gain:0.03, type:"triangle"});
+    },
+    switchWeapon() {
+      tone({frequency:520, endFrequency:310, duration:0.045, gain:0.038, type:"triangle"});
+      tone({frequency:760, endFrequency:470, duration:0.035, gain:0.026, type:"triangle", when:0.07});
     }
   };
 }
