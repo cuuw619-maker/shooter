@@ -22,9 +22,12 @@ button,input{height:50px;border:0;border-radius:12px;font-size:16px}button{paddi
 #status{min-height:24px;color:#8ea2bf;margin-top:14px}.hidden{display:none!important}
 #hud{position:fixed;inset:0;z-index:3;pointer-events:none}.cross{position:absolute;left:50%;top:50%;width:20px;height:20px;transform:translate(-50%,-50%)}.cross:before,.cross:after{content:"";position:absolute;background:#fff}.cross:before{width:20px;height:2px;top:9px}.cross:after{width:2px;height:20px;left:9px}
 #score{position:absolute;top:14px;left:50%;transform:translateX(-50%);background:#07101acc;padding:8px 14px;border-radius:10px;font-weight:700}
+#ammo{position:absolute;right:18px;bottom:22px;background:#07101acc;padding:9px 13px;border-radius:10px;font-size:16px;font-weight:800}
+#weapon{position:absolute;right:18px;bottom:58px;color:#b9c7da;background:#07101acc;padding:6px 10px;border-radius:8px;font-size:11px}
 #wait{position:absolute;left:50%;top:68px;transform:translateX(-50%);background:#07101acc;padding:9px 14px;border-radius:10px;color:#b9c7da;font-size:13px;text-align:center;white-space:nowrap}#room{position:absolute;top:14px;left:14px;background:#07101acc;padding:8px 12px;border-radius:10px;color:#aebbd0;font-size:13px}
 #health{position:absolute;left:16px;bottom:20px;width:170px;height:18px;border:2px solid #fff5;border-radius:9px;padding:2px;background:#0008}.hp{height:100%;width:100%;border-radius:5px;background:#46d483}
 #mobile{display:none;position:fixed;inset:0;z-index:4;pointer-events:none}.stick{position:absolute;width:130px;height:130px;border:2px solid #fff3;border-radius:50%;bottom:28px;background:#fff1;pointer-events:auto}.stick .knob{position:absolute;width:54px;height:54px;left:36px;top:36px;border-radius:50%;background:#ffffff44}.left{left:22px}.look{right:22px}.shoot{position:absolute;right:36px;bottom:180px;width:82px;height:82px;border-radius:50%;border:2px solid #fff5;background:#d33a3a99;pointer-events:auto;color:white;font-weight:800}.jump{position:absolute;right:30px;bottom:88px;width:70px;height:52px;border-radius:12px;background:#fff2;color:white;pointer-events:auto}
+.weapon-buttons{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);display:flex;gap:7px;pointer-events:auto}.weapon-buttons button{width:42px;height:42px;padding:0;background:#07101acc;color:#fff;border:1px solid #fff3}
 @media (pointer:coarse){#mobile{display:block}}
 .small{font-size:13px;color:#7f8da3;margin-top:12px;line-height:1.45}
 </style>
@@ -42,8 +45,8 @@ button,input{height:50px;border:0;border-radius:12px;font-size:16px}button{paddi
     <div class="small">ПК: WASD + мышь • ЛКМ — огонь • Space — прыжок<br>Телефон: левый стик — ходьба, правый — обзор, FIRE — стрельба.</div>
   </div>
 </div>
-<div id="hud" class="hidden"><button id="fullscreen" title="Полный экран" aria-label="Полный экран">⛶</button><div id="room"></div><div id="wait"></div><div id="score">0 : 0</div><div class="cross"></div><div id="health"><div class="hp"></div></div></div>
-<div id="mobile" class="hidden"><div class="stick left" id="moveStick"><div class="knob"></div></div><div class="stick look" id="lookStick"><div class="knob"></div></div><button class="shoot" id="fire">FIRE</button><button class="jump" id="jump">JUMP</button></div>
+<div id="hud" class="hidden"><button id="fullscreen" title="Полный экран" aria-label="Полный экран">⛶</button><div id="room"></div><div id="wait"></div><div id="score">0 : 0</div><div id="weapon">RIFLE</div><div id="ammo">RIFLE 30 / 90</div><div class="cross"></div><div id="health"><div class="hp"></div></div></div>
+<div id="mobile" class="hidden"><div class="stick left" id="moveStick"><div class="knob"></div></div><div class="stick look" id="lookStick"><div class="knob"></div></div><button class="shoot" id="fire">FIRE</button><button class="jump" id="jump">JUMP</button><div class="weapon-buttons"><button data-weapon="rifle">1</button><button data-weapon="pistol">2</button><button data-weapon="sniper">3</button><button id="reload">R</button></div></div>
 <script src="./vendor/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
 <script type="module" src="./game/main.js"></script>
