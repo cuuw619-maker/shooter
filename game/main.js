@@ -6,6 +6,9 @@ import {Room} from "../network/room.js";
 import {createSync} from "../network/sync.js";
 import {createHud, setupFullscreen} from "../ui/hud.js";
 import {setupMobile} from "../ui/mobile.js";
+import {createEngine} from "../engine/core.js";
+import {createAudioEngine} from "../engine/audio.js";
+import {createFx} from "../engine/fx.js";
 
 const THREE = window.THREE;
 const hud = createHud();
@@ -37,6 +40,9 @@ let fireHeld = false;
 let firePressed = false;
 let raycaster = null;
 let solids = [];
+let engine = null;
+let audio = null;
+let fx = null;
 
 function startGame() {
   if (scene) return;
@@ -52,16 +58,22 @@ function startGame() {
   scene.add(player);
   weapons = createWeaponSystem(camera);
   raycaster = new THREE.Raycaster();
+  engine = createEngine({renderer, scene, camera, clock});
+  audio = createAudioEngine();
+  fx = createFx(scene);
+  engine.use(fx);
   setupInput();
   setupMobile(input);
   setupFullscreen(hud);
   document.querySelectorAll("[data-weapon]").forEach(btn => btn.addEventListener("pointerdown", e => {
     e.preventDefault();
+    audio?.unlock();
     weapons.equip(btn.dataset.weapon);
   }));
   document.getElementById("reload").addEventListener("pointerdown", e => {
     e.preventDefault();
-    weapons.reload();
+    audio?.unlock();
+    if (weapons.reload()) audio.reload();
   });
   hud.showGame();
   hud.room(roomCode);
@@ -83,6 +95,7 @@ function setupInput() {
     if (movementKeys.has(e.code)) {
       keys.add(e.code);
       e.preventDefault();
+      audio?.unlock();
       refreshMovement();
     }
     if (e.code === "Space") {
@@ -120,6 +133,7 @@ function setupInput() {
     if (e.button === 0 && document.pointerLockElement === renderer.domElement) {
       fireHeld = true;
       firePressed = true;
+      audio?.unlock();
     }
   });
   addEventListener("mouseup", e => {
@@ -136,10 +150,14 @@ function setupInput() {
     firePressed = false;
   });
   renderer.domElement.addEventListener("contextmenu", e => e.preventDefault());
-  input.fire = () => { fireHeld = true; firePressed = true; };
+  input.fire = () => { audio?.unlock(); fireHeld = true; firePressed = true; };
   input.stopFire = () => { fireHeld = false; };
   input.jump = () => {
-    if (player?.userData.grounded) player.userData.jumpQueued = true;
+    audio?.unlock();
+    if (player?.userData.grounded) {
+      player.userData.jumpQueued = true;
+      audio?.jump();
+    }
   };
   addEventListener("resize", () => {
     if (!camera || !renderer) return;
@@ -166,6 +184,7 @@ function handleData(data) {
     if (health === 0) {
       health = 100;
       hud.health(100);
+      audio?.hurt();
       respawn(player, isHost);
     }
   }
@@ -214,6 +233,7 @@ function connectRoom(code, host) {
 function loop() {
   requestAnimationFrame(loop);
   const dt = Math.min(clock.getDelta(), 0.05);
+  const now = performance.now();
   updatePlayer(player, {yaw}, input, dt, obstacles);
   if (remoteMesh && remoteState) {
     remoteMesh.position.lerp(new THREE.Vector3(remoteState.x, remoteState.y, remoteState.z), 0.25);
@@ -222,7 +242,8 @@ function loop() {
   pitch = Math.max(-1.45, Math.min(1.45, pitch + input.lookY * -0.035));
   yaw -= input.lookX * 0.045;
   applyLook(player, camera, {yaw, pitch});
-  weapons?.tick(performance.now());
+  engine?.update(dt, now);
+  weapons?.tick(now);
   if (weapons) {
     const a = weapons.ammo();
     hud.weapon(weapons.config().name);
@@ -230,17 +251,22 @@ function loop() {
   }
   if (fireHeld && weapons) {
     weapons.fire({
-      triggerHeld: fireHeld,
       triggerPressed: firePressed,
-      now: performance.now(),
+      now,
       raycaster,
       camera,
       remoteMesh,
       obstacles: solids,
-      onDry: () => {},
-      onShot: () => {},
-      onHit: damage => {
-        room?.send({t:"hit", damage});
+      onDry: () => audio?.dry(),
+      onShot: info => {
+        audio?.shot(info.weapon);
+        fx?.tracer(info.from.clone(), info.to.clone());
+        fx?.burst(info.from.clone(), info.direction.clone(), "muzzle");
+      },
+      onHit: info => {
+        audio?.hit();
+        if (info.point) fx?.burst(info.point, info.normal || new THREE.Vector3(0,1,0), "hit");
+        room?.send({t:"hit", damage: info.damage, headshot: info.headshot});
         score++;
         hud.score(score, remoteScore);
         sync?.sendScore(score);
@@ -250,8 +276,8 @@ function loop() {
   } else {
     firePressed = false;
   }
-  if (room?.isConnected() && performance.now() - lastNet > 50) {
-    lastNet = performance.now();
+  if (room?.isConnected() && now - lastNet > 50) {
+    lastNet = now;
     sync.sendState(getState(player, {yaw, pitch}, score));
   }
   renderer.render(scene, camera);
