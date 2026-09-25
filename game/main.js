@@ -1,7 +1,7 @@
 import {createWorld, createRenderer, createCamera, createRemote} from "./world.js";
 import {createPlayer, respawn, getState, applyLook} from "./player.js";
 import {updatePlayer} from "./physics.js";
-import {shoot as fireWeapon} from "./weapons.js";
+import {createWeaponSystem} from "./weapons.js";
 import {Room} from "../network/room.js";
 import {createSync} from "../network/sync.js";
 import {createHud, setupFullscreen} from "../ui/hud.js";
@@ -32,6 +32,8 @@ let pitch = 0;
 let lastNet = 0;
 let isHost = false;
 let roomCode = "";
+let weapons = null;
+let fireHeld = false;
 
 function startGame() {
   if (scene) return;
@@ -44,6 +46,7 @@ function startGame() {
   clock = new THREE.Clock();
   player = createPlayer(camera, isHost);
   scene.add(player);
+  weapons = createWeaponSystem(camera);
   setupInput();
   setupMobile(input);
   setupFullscreen(hud);
@@ -60,6 +63,10 @@ function setupInput() {
     if (e.code === "KeyA") input.keyboardX = -1;
     if (e.code === "KeyD") input.keyboardX = 1;
     if (e.code === "Space") input.jump();
+    if (e.code === "Digit1") weapons?.equip("rifle");
+    if (e.code === "Digit2") weapons?.equip("pistol");
+    if (e.code === "Digit3") weapons?.equip("sniper");
+    if (e.code === "KeyR") weapons?.reload();
   });
   addEventListener("keyup", e => {
     if (e.code === "KeyW" || e.code === "KeyS") input.keyboardZ = 0;
@@ -78,17 +85,16 @@ function setupInput() {
     }
   });
   renderer.domElement.addEventListener("mousedown", e => {
-    if (e.button === 0) fireWeapon(() => room?.send({t:"hit"}), () => {
-      score++;
-      hud.score(score, remoteScore);
-      sync?.sendScore(score);
-    });
+    if (e.button === 0) fireHeld = true;
   });
-  input.fire = () => fireWeapon(() => room?.send({t:"hit"}), () => {
-    score++;
-    hud.score(score, remoteScore);
-    sync?.sendScore(score);
+  renderer.domElement.addEventListener("mouseup", e => {
+    if (e.button === 0) fireHeld = false;
   });
+  addEventListener("blur", () => { fireHeld = false; });
+  input.fire = () => {
+    fireHeld = true;
+    setTimeout(() => { fireHeld = false; }, 70);
+  };
   input.jump = () => { player.position.y = 2.5; };
   addEventListener("resize", () => {
     if (!camera || !renderer) return;
@@ -110,7 +116,7 @@ function handleData(data) {
     remoteScore = packet.remoteScore;
     hud.score(score, remoteScore);
   } else if (data.t === "hit") {
-    health = Math.max(0, health - 20);
+    health = Math.max(0, health - (Number(data.damage) || 20));
     hud.health(health);
     if (health === 0) {
       health = 100;
@@ -171,6 +177,23 @@ function loop() {
   pitch = Math.max(-1.45, Math.min(1.45, pitch + input.lookY * -0.035));
   yaw -= input.lookX * 0.045;
   applyLook(player, camera, {yaw, pitch});
+  weapons?.tick(performance.now());
+  if (fireHeld && weapons) {
+    weapons.fire({
+      now: performance.now(),
+      raycaster: new THREE.Raycaster(),
+      camera,
+      remoteMesh,
+      onDry: () => {},
+      onShot: () => {},
+      onHit: damage => {
+        room?.send({t:"hit", damage});
+        score++;
+        hud.score(score, remoteScore);
+        sync?.sendScore(score);
+      }
+    });
+  }
   if (room?.isConnected() && performance.now() - lastNet > 50) {
     lastNet = performance.now();
     sync.sendState(getState(player, {yaw, pitch}, score));
