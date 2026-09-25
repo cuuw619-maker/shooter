@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>SHOOTER — P2P FPS</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#05070a;color:#fff;font-family:system-ui,Arial,sans-serif;touch-action:none}
+canvas{display:block;width:100%;height:100%}
+#menu{position:fixed;inset:0;z-index:10;display:grid;place-items:center;background:radial-gradient(circle at 50% 30%,#16243b 0,#070a10 55%,#030406 100%)}
+.panel{width:min(420px,92vw);padding:28px;border:1px solid #34445e;border-radius:18px;background:#0b111bd9;backdrop-filter:blur(12px);box-shadow:0 20px 80px #0008}
+h1{margin:0 0 5px;font-size:42px;letter-spacing:5px}p{color:#9eabc0}.row{display:flex;gap:10px;margin-top:12px}
+button,input{height:50px;border:0;border-radius:10px;font-size:16px}button{padding:0 18px;background:#e9eef8;color:#07101c;font-weight:700;cursor:pointer}button.secondary{background:#202d40;color:#fff}input{width:100%;padding:0 15px;background:#121c2a;color:#fff;outline:1px solid #2c3c54;text-align:center;letter-spacing:5px}
+#status{min-height:24px;color:#8ea2bf;margin-top:14px}.hidden{display:none!important}
+#hud{position:fixed;inset:0;z-index:3;pointer-events:none}.cross{position:absolute;left:50%;top:50%;width:20px;height:20px;transform:translate(-50%,-50%)}.cross:before,.cross:after{content:"";position:absolute;background:#fff}.cross:before{width:20px;height:2px;top:9px}.cross:after{width:2px;height:20px;left:9px}
+#score{position:absolute;top:14px;left:50%;transform:translateX(-50%);background:#07101acc;padding:8px 14px;border-radius:10px;font-weight:700}
+#room{position:absolute;top:14px;left:14px;background:#07101acc;padding:8px 12px;border-radius:10px;color:#aebbd0;font-size:13px}
+#health{position:absolute;left:16px;bottom:20px;width:170px;height:18px;border:2px solid #fff5;border-radius:9px;padding:2px;background:#0008}.hp{height:100%;width:100%;border-radius:5px;background:#46d483}
+#mobile{display:none;position:fixed;inset:0;z-index:4;pointer-events:none}.stick{position:absolute;width:130px;height:130px;border:2px solid #fff3;border-radius:50%;bottom:28px;background:#fff1;pointer-events:auto}.stick .knob{position:absolute;width:54px;height:54px;left:36px;top:36px;border-radius:50%;background:#ffffff44}.left{left:22px}.look{right:22px}.shoot{position:absolute;right:36px;bottom:180px;width:82px;height:82px;border-radius:50%;border:2px solid #fff5;background:#d33a3a99;pointer-events:auto;color:white;font-weight:800}.jump{position:absolute;right:30px;bottom:88px;width:70px;height:52px;border-radius:12px;background:#fff2;color:white;pointer-events:auto}
+@media (pointer:coarse){#mobile{display:block}}
+.small{font-size:13px;color:#7f8da3;margin-top:12px;line-height:1.45}
+</style>
+</head>
+<body>
+<div id="menu">
+ <div class="panel">
+  <h1>SHOOTER</h1>
+  <p>3D FPS • WebRTC P2P</p>
+  <button id="host" style="width:100%">СОЗДАТЬ КОМНАТУ</button>
+  <div class="row"><input id="code" inputmode="numeric" maxlength="5" placeholder="КОД 00000"><button id="join" class="secondary">ВОЙТИ</button></div>
+  <div id="status">Выберите создание или подключение.</div>
+  <div class="small">ПК: WASD + мышь • ЛКМ — огонь • Space — прыжок<br>Телефон: левый стик — ходьба, правый — обзор, FIRE — стрельба.</div>
+ </div>
+</div>
+<div id="hud" class="hidden"><div id="room"></div><div id="score">0 : 0</div><div class="cross"></div><div id="health"><div class="hp"></div></div></div>
+<div id="mobile" class="hidden">
+ <div class="stick left" id="moveStick"><div class="knob"></div></div>
+ <div class="stick look" id="lookStick"><div class="knob"></div></div>
+ <button class="shoot" id="fire">FIRE</button><button class="jump" id="jump">JUMP</button>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.min.js"></script>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+let peer=null, conn=null, isHost=false, roomCode='', remote=null;
+let scene,camera,renderer,clock,player,remoteMesh;
+const keys={}, move={x:0,y:0}, look={x:0,y:0}; let yaw=0,pitch=0,health=100,score=0,remoteScore=0,shooting=false,lastNet=0;
+const WORLD=80;
+
+function randCode(){return String(Math.floor(10000+Math.random()*90000))}
+function setStatus(s){$('status').textContent=s}
+function initPeer(code, host){
+ isHost=host; roomCode=code;
+ peer=new Peer(code,{debug:0});
+ peer.on('open',id=>{setStatus(host?'Комната '+id+' создана. Передайте код игроку.':'Подключение к '+code+'...'); if(host) startGame()});
+ peer.on('connection',c=>{if(!isHost)return; conn=c; wireConn(); startGame()});
+ peer.on('error',e=>setStatus('Ошибка P2P: '+(e.type||e.message)));
+ if(!host) peer.on('open',()=>{conn=peer.connect(code,{reliable:true}); wireConn()});
+}
+function wireConn(){
+ if(!conn)return;
+ conn.on('open',()=>{setStatus('P2P соединение установлено'); startGame();});
+ conn.on('data',data=>netData(data));
+ conn.on('close',()=>setStatus('Соединение закрыто'));
+}
+function netData(d){
+ if(d.t==='state'){
+  remote=d; if(!remoteMesh)makeRemote();
+ }
+ if(d.t==='hit'){health=Math.max(0,health-20); if(health===0){health=100;player.position.set(isHost?-8:8,1.6,0); score=remoteScore+1}}
+ if(d.t==='score'){remoteScore=d.s; updateScore()}
+}
+function send(d){if(conn&&conn.open)conn.send(d)}
+
+function startGame(){
+ $('menu').classList.add('hidden');$('hud').classList.remove('hidden');$('mobile').classList.remove('hidden');$('room').textContent='ROOM '+roomCode;
+ if(scene)return;
+ scene=new THREE.Scene(); scene.background=new THREE.Color(0x07101a); scene.fog=new THREE.Fog(0x07101a,15,85);
+ camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.05,200);
+ renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);document.body.appendChild(renderer.domElement);
+ clock=new THREE.Clock();
+ scene.add(new THREE.HemisphereLight(0xbdd7ff,0x273018,2));
+ const sun=new THREE.DirectionalLight(0xffffff,2.2);sun.position.set(10,20,5);scene.add(sun);
+ const floor=new THREE.Mesh(new THREE.PlaneGeometry(WORLD,WORLD),new THREE.MeshStandardMaterial({color:0x26323b,roughness:.9}));floor.rotation.x=-Math.PI/2;scene.add(floor);
+ const grid=new THREE.GridHelper(WORLD,40,0x617080,0x3b4650);grid.position.y=.01;scene.add(grid);
+ for(let i=0;i<24;i++) addBox((Math.random()-.5)*65,1+Math.random()*2,(Math.random()-.5)*65,2+Math.random()*5,2+Math.random()*4);
+ player=new THREE.Object3D();player.position.set(isHost?-8:8,1.6,0);scene.add(player);player.add(camera);
+ addEvents();requestAnimationFrame(loop);
+}
+function addBox(x,y,z,w,h){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,w),new THREE.MeshStandardMaterial({color:0x3e4d5b}));m.position.set(x,y,z);scene.add(m)}
+function makeRemote(){remoteMesh=new THREE.Group();const body=new THREE.Mesh(new THREE.BoxGeometry(.8,1.4,.5),new THREE.MeshStandardMaterial({color:0xc34b4b}));body.position.y=-.7;const head=new THREE.Mesh(new THREE.SphereGeometry(.3,12,8),new THREE.MeshStandardMaterial({color:0xd89b76}));head.position.y=.15;remoteMesh.add(body,head);scene.add(remoteMesh)}
+function updateScore(){$('score').textContent=score+' : '+remoteScore}
+function shoot(){shooting=true;setTimeout(()=>shooting=false,90);send({t:'hit'});score++;updateScore();send({t:'score',s:score})}
+function addEvents(){
+ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+ addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Space')player.position.y=2.5});
+ addEventListener('keyup',e=>keys[e.code]=false);
+ renderer.domElement.addEventListener('click',()=>renderer.domElement.requestPointerLock?.());
+ addEventListener('mousemove',e=>{if(document.pointerLockElement===renderer.domElement){yaw-=e.movementX*.0025;pitch-=e.movementY*.0025;pitch=Math.max(-1.45,Math.min(1.45,pitch))}});
+ renderer.domElement.addEventListener('mousedown',e=>{if(e.button===0)shoot()});
+ $('fire').addEventListener('touchstart',e=>{e.preventDefault();shoot()},{passive:false});
+ $('jump').addEventListener('touchstart',e=>{e.preventDefault();player.position.y=2.5},{passive:false});
+ setupStick($('moveStick'),move);setupStick($('lookStick'),look);
+}
+function setupStick(el,out){
+ let active=null; const knob=el.querySelector('.knob');
+ el.addEventListener('pointerdown',e=>{active=e.pointerId;el.setPointerCapture(active);moveStick(e)});
+ el.addEventListener('pointermove',e=>{if(e.pointerId===active)moveStick(e)});
+ el.addEventListener('pointerup',e=>{if(e.pointerId===active){active=null;out.x=out.y=0;knob.style.transform='translate(0,0)'}});
+ function moveStick(e){const r=el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let x=e.clientX-cx,y=e.clientY-cy;const max=r.width*.32,d=Math.hypot(x,y);if(d>max){x=x/d*max;y=y/d*max}out.x=x/max;out.y=y/max;knob.style.transform='translate('+x+'px,'+y+'px')}
+}
+function loop(){
+ requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.05);
+ let sx=(keys.KeyD?1:0)-(keys.KeyA?1:0)+move.x, sz=(keys.KeyS?1:0)-(keys.KeyW?1:0)+move.y;
+ const len=Math.hypot(sx,sz)||1; sx/=len;sz/=len; const speed=7*dt;
+ player.position.x+=sx*Math.cos(yaw)*speed-sz*Math.sin(yaw)*speed;
+ player.position.z+=sx*Math.sin(yaw)*speed+sz*Math.cos(yaw)*speed;
+ player.position.x=Math.max(-38,Math.min(38,player.position.x));player.position.z=Math.max(-38,Math.min(38,player.position.z));
+ player.position.y+=(1.6-player.position.y)*Math.min(1,dt*9);
+ if(Math.abs(look.x)+Math.abs(look.y)>0){yaw-=look.x*.045;pitch-=look.y*.035;pitch=Math.max(-1.45,Math.min(1.45,pitch))}
+ player.rotation.y=yaw;camera.rotation.x=pitch;
+ if(remoteMesh&&remote){remoteMesh.position.lerp(new THREE.Vector3(remote.x,remote.y-1.6,remote.z),.25);remoteMesh.rotation.y=remote.yaw}
+ if(conn&&conn.open&&performance.now()-lastNet>50){lastNet=performance.now();send({t:'state',x:player.position.x,y:player.position.y,z:player.position.z,yaw, s:score})}
+ renderer.render(scene,camera);
+}
+$('host').onclick=()=>initPeer(randCode(),true);
+$('join').onclick=()=>{const c=$('code').value.replace(/\D/g,'');if(c.length!==5)return setStatus('Введите ровно 5 цифр.');initPeer(c,false)};
+$('code').addEventListener('input',e=>e.target.value=e.target.value.replace(/\D/g,'').slice(0,5));
+</script>
+</body>
+</html>
