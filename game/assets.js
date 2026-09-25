@@ -45,6 +45,28 @@ export function loadPlayerAsset() {
   return playerPromise;
 }
 
+export function normalizeMap(root, targetSize = 74) {
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(root);
+  const size = box.getSize(new THREE.Vector3());
+  const horizontal = Math.max(size.x, size.z, 0.001);
+  const scale = targetSize / horizontal;
+  root.scale.multiplyScalar(scale);
+  root.updateMatrixWorld(true);
+  const finalBox = new THREE.Box3().setFromObject(root);
+  const finalCenter = finalBox.getCenter(new THREE.Vector3());
+  root.position.x -= finalCenter.x;
+  root.position.z -= finalCenter.z;
+  root.position.y -= finalBox.min.y;
+  root.traverse(o => {
+    if (o.isMesh) {
+      o.castShadow = true;
+      o.receiveShadow = true;
+    }
+  });
+  return root;
+}
+
 export function createPlayerVisual(template) {
   const root = template.scene.clone(true);
   normalizeModel(root, 1.8);
@@ -63,6 +85,20 @@ export function createPlayerVisual(template) {
   };
   const idle = findClip(["idle","stand"]);
   const walk = findClip(["walk","run","move"]);
+  const bodyHit = new THREE.Mesh(
+    new THREE.CapsuleGeometry(0.30, 0.70, 6, 10),
+    new THREE.MeshBasicMaterial({transparent:true, opacity:0, depthWrite:false})
+  );
+  bodyHit.position.set(0,0.78,0);
+  bodyHit.userData.hitbox = "body";
+  const headHit = new THREE.Mesh(
+    new THREE.SphereGeometry(0.25, 12, 8),
+    new THREE.MeshBasicMaterial({transparent:true, opacity:0, depthWrite:false})
+  );
+  headHit.position.set(0,1.47,0);
+  headHit.userData.hitbox = "head";
+  root.add(bodyHit, headHit);
+
   const controller = {
     root,
     mixer: mixers,
