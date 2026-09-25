@@ -501,6 +501,8 @@ function positionAtOpenSpawn(target, host, colliders) {
   for (const [x,z] of preferred) {
     if (!isBlocked(x,z,0.40,colliders)) {
       target.position.set(x,1.6,z);
+      target.userData.spawnX = x;
+      target.userData.spawnZ = z;
       target.userData.grounded = true;
       return;
     }
