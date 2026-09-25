@@ -35,12 +35,24 @@ function bindStick(el, input, type) {
     const max = r.width * 0.32;
     const d = Math.hypot(x, y);
     if (d > max) { x = x / d * max; y = y / d * max; }
-    input[type === "move" ? "moveX" : "lookX"] = x / max;
-    input[type === "move" ? "moveY" : "lookY"] = y / max;
+    let nx = x / max;
+    let ny = y / max;
+    const magnitude = Math.hypot(nx, ny);
+    const deadzone = type === "look" ? 0.06 : 0.10;
+    if (magnitude < deadzone) {
+      nx = 0; ny = 0;
+    } else {
+      const normalized = Math.min(1, (magnitude - deadzone) / (1 - deadzone));
+      const scale = normalized / magnitude;
+      nx *= scale; ny *= scale;
+    }
+    input[type === "move" ? "moveX" : "lookX"] = nx;
+    input[type === "move" ? "moveY" : "lookY"] = ny;
     knob.style.transform = "translate(" + x + "px," + y + "px)";
   };
 
   el.addEventListener("pointerdown", e => {
+    e.preventDefault();
     active = e.pointerId;
     el.setPointerCapture(active);
     set(e);
