@@ -9,6 +9,9 @@ export function createPlayer(camera, isHost) {
 
 export function respawn(player, isHost) {
   player.position.set(isHost ? -8 : 8, 1.6, 0);
+  player.userData.verticalVelocity = 0;
+  player.userData.grounded = true;
+  player.userData.jumpQueued = false;
 }
 
 export function applyLook(player, camera, state) {
