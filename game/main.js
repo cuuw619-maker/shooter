@@ -1,6 +1,6 @@
 import {createWorld, createRenderer, createCamera} from "./world.js";
 import {createPlayer, respawn, getState, applyLook} from "./player.js";
-import {updatePlayer, isBlocked} from "./physics.js?v=20260925-2";
+import {updatePlayer, isBlocked} from "./physics.js?v=20260925-3";
 import {createWeaponSystem} from "./weapons.js";
 import {Room} from "../network/room.js";
 import {createSync} from "../network/sync.js";
@@ -12,7 +12,7 @@ import {createFx} from "../engine/fx.js";
 import {
   loadMapAsset, loadPlayerAsset, normalizeMap,
   buildMapColliders, collectMapSolids, createPlayerVisual
-} from "./assets.js?v=20260925-9";
+} from "./assets.js?v=20260925-10";
 
 const THREE = window.THREE;
 const hud = createHud();
@@ -121,7 +121,8 @@ function startGame() {
     scene.add(importedMap);
     obstacles = buildMapColliders(importedMap);
     solids = collectMapSolids(importedMap);
-    positionAtOpenSpawn(player, isHost, obstacles);
+    engine.collision.setColliders(obstacles);
+    positionAtOpenSpawn(player, isHost, engine.collision);
     mapAssetReady = true;
     updateAssetStatus();
   }).catch(error => {
@@ -393,7 +394,7 @@ function loop() {
   camera.rotation.z = cameraRoll;
 
   const beforeGrounded = player.userData.grounded === true;
-  updatePlayer(player, {yaw}, input, dt, obstacles);
+  updatePlayer(player, {yaw}, input, dt, engine.collision);
 
   const moveSpeed = Math.hypot(player.userData.velocityX || 0, player.userData.velocityZ || 0);
   const bobStrength = Math.min(1, moveSpeed / 6.5) * (player.userData.grounded ? 1 : 0);
@@ -494,12 +495,12 @@ function loop() {
   renderer.render(scene, camera);
 }
 
-function positionAtOpenSpawn(target, host, colliders) {
+function positionAtOpenSpawn(target, host, collisionWorld) {
   const preferred = host
     ? [[-8,0],[-12,0],[-8,-6],[-8,6],[-16,0]]
     : [[8,0],[12,0],[8,-6],[8,6],[16,0]];
   for (const [x,z] of preferred) {
-    if (!isBlocked(x,z,0.40,colliders)) {
+    if (!isBlocked(x,z,0.40,collisionWorld)) {
       target.position.set(x,1.6,z);
       target.userData.spawnX = x;
       target.userData.spawnZ = z;
