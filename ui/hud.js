@@ -6,6 +6,8 @@ export function createHud() {
   const hp = document.querySelector(".hp");
   const ammo = document.getElementById("ammo");
   const weapon = document.getElementById("weapon");
+  const hitmarker = document.getElementById("hitmarker");
+  const killfeed = document.getElementById("killfeed");
 
   return {
     status(text) { status.textContent = text; },
@@ -19,6 +21,20 @@ export function createHud() {
     health(value) { hp.style.width = Math.max(0, Math.min(100, value)) + "%"; },
     ammo(current, mag, reserve, reloading) { if (ammo) ammo.textContent = reloading ? current + " • ПЕРЕЗАРЯДКА" : current + "  " + mag + " / " + reserve; },
     weapon(current) { if (weapon) weapon.textContent = current; },
+    hit(headshot=false) {
+      if (!hitmarker) return;
+      hitmarker.textContent = headshot ? "✦" : "×";
+      hitmarker.classList.remove("show");
+      void hitmarker.offsetWidth;
+      hitmarker.classList.add("show");
+    },
+    kill() {
+      if (!killfeed) return;
+      killfeed.textContent = "ELIMINATION";
+      killfeed.classList.remove("show");
+      void killfeed.offsetWidth;
+      killfeed.classList.add("show");
+    },
     showGame() {
       document.getElementById("menu").classList.add("hidden");
       document.getElementById("hud").classList.remove("hidden");
