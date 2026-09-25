@@ -42,6 +42,7 @@ export function createCharacterAnimator(root) {
 
   let time = Math.random() * 10;
   let weight = 0;
+  const baseY = root.position.y;
 
   function update(dt, moving, speed = 0, airborne = false) {
     time += dt * (moving ? 7.5 + Math.min(speed, 8) * 0.75 : 2.2);
@@ -71,7 +72,7 @@ export function createCharacterAnimator(root) {
       node.rotation.z += Math.cos(time * 0.7) * 0.018 * weight;
     }
 
-    root.position.y += Math.sin(time * 0.5) * 0.012 * weight * (moving ? 1 : 0.5);
+    root.position.y = baseY + Math.sin(time * 0.5) * 0.012 * weight * (moving ? 1 : 0.5);
   }
 
   return {update};
