@@ -266,13 +266,25 @@ function setupSettings(button, panel, settings, input, moveStick, lookStick, fir
 }
 
 function applySwap(settings, moveStick, lookStick) {
-  const moveParent = moveStick.parentElement;
-  const lookParent = lookStick.parentElement;
-  if (!moveParent || !lookParent || moveParent !== lookParent) return;
+  const parent = moveStick.parentElement;
+  if (!parent || lookStick.parentElement !== parent) return;
 
-  const first = settings.swapSticks ? lookStick : moveStick;
-  const second = settings.swapSticks ? moveStick : lookStick;
-  moveParent.append(first, second);
+  parent.append(
+    settings.swapSticks ? lookStick : moveStick,
+    settings.swapSticks ? moveStick : lookStick
+  );
+
+  if (settings.swapSticks) {
+    moveStick.style.left = "auto";
+    moveStick.style.right = "22px";
+    lookStick.style.left = "22px";
+    lookStick.style.right = "auto";
+  } else {
+    moveStick.style.left = "22px";
+    moveStick.style.right = "auto";
+    lookStick.style.left = "auto";
+    lookStick.style.right = "22px";
+  }
 }
 
 function syncSettingLabels() {
