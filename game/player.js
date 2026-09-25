@@ -8,7 +8,10 @@ export function createPlayer(camera, isHost) {
 }
 
 export function respawn(player, isHost) {
-  player.position.set(isHost ? -8 : 8, 1.6, 0);
+  const fallbackX = isHost ? -8 : 8;
+  const spawnX = Number.isFinite(player.userData.spawnX) ? player.userData.spawnX : fallbackX;
+  const spawnZ = Number.isFinite(player.userData.spawnZ) ? player.userData.spawnZ : 0;
+  player.position.set(spawnX, 1.6, spawnZ);
   player.userData.verticalVelocity = 0;
   player.userData.grounded = true;
   player.userData.jumpQueued = false;
