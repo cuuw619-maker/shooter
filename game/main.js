@@ -244,14 +244,17 @@ function loop() {
   requestAnimationFrame(loop);
   const dt = Math.min(clock.getDelta(), 0.05);
   const now = performance.now();
+
+  // Apply the newest look input before physics so movement and camera share the exact same yaw.
+  pitch = Math.max(-1.45, Math.min(1.45, pitch + input.lookY * -0.035));
+  yaw -= input.lookX * 0.045;
+  applyLook(player, camera, {yaw, pitch});
+
   updatePlayer(player, {yaw}, input, dt, obstacles);
   if (remoteMesh && remoteState) {
     remoteMesh.position.lerp(new THREE.Vector3(remoteState.x, remoteState.y, remoteState.z), 0.25);
     remoteMesh.rotation.y = remoteState.yaw;
   }
-  pitch = Math.max(-1.45, Math.min(1.45, pitch + input.lookY * -0.035));
-  yaw -= input.lookX * 0.045;
-  applyLook(player, camera, {yaw, pitch});
   engine?.update(dt, now);
   weapons?.tick(now);
   if (weapons) {
