@@ -179,7 +179,7 @@ function loop() {
   const dt = Math.min(clock.getDelta(), 0.05);
   updatePlayer(player, {yaw}, input, dt, obstacles);
   if (remoteMesh && remoteState) {
-    remoteMesh.position.lerp(new THREE.Vector3(remoteState.x, remoteState.y - 1.6, remoteState.z), 0.25);
+    remoteMesh.position.lerp(new THREE.Vector3(remoteState.x, remoteState.y, remoteState.z), 0.25);
     remoteMesh.rotation.y = remoteState.yaw;
   }
   pitch = Math.max(-1.45, Math.min(1.45, pitch + input.lookY * -0.035));
