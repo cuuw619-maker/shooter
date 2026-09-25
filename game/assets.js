@@ -1,5 +1,5 @@
+import {createCharacterAnimator} from "../engine/character.js?v=20260925-2";
 const THREE = window.THREE;
-import {createCharacterAnimator} from "../engine/character.js?v=20260925-1";
 
 const MAP_URL = new URL("../sendstone_new(1).glb?v=20260925-4", import.meta.url).href;
 const PLAYER_URL = new URL("../archie__standoff_2.glb?v=20260925-4", import.meta.url).href;
@@ -163,12 +163,12 @@ export function buildMapColliders(root, limit = 320) {
     // Skip floor plates, ceilings, decals and giant structural shells.
     if (vertical < 0.45) return;
     if (horizontal < 0.35) return;
-    if (size.x > 18 || size.z > 18) return;
+    if (size.x > 30 && size.z > 30) return;
     if (center.y < 0.12) return;
 
     const halfX = Math.max(0.08, size.x * 0.5);
     const halfZ = Math.max(0.08, size.z * 0.5);
-    if (halfX > 9 || halfZ > 9) return;
+    if (halfX > 18 || halfZ > 18) return;
 
     candidates.push({
       x: center.x,
