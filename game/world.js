@@ -103,7 +103,7 @@ export function createRemote(scene) {
   belt.position.y = -1.17;
 
   const legL = new THREE.Mesh(new THREE.BoxGeometry(0.24,0.90,0.24), dark);
-  legL.position.set(-0.19,-1.68,0);
+  legL.position.set(-0.19,-1.15,0);
   legL.userData.hitbox = "body";
   const legR = legL.clone();
   legR.position.x = 0.19;
