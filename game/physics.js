@@ -4,7 +4,7 @@ const JUMP_SPEED = 8.2;
 const WALK_SPEED = 7.0;
 const SPRINT_SPEED = 9.2;
 const ACCELERATION = 55;
-const BRAKING = 70;
+const BRAKING = 78;
 
 export function updatePlayer(player, state, input, dt, obstacles) {
   if (!player.userData) player.userData = {};
@@ -28,7 +28,6 @@ export function updatePlayer(player, state, input, dt, obstacles) {
     localForward /= inputLength;
   }
 
-  // Camera-space basis: W is always forward, A/D are always left/right.
   const yaw = state.yaw;
   const forwardX = -Math.sin(yaw);
   const forwardZ = -Math.cos(yaw);
@@ -46,17 +45,12 @@ export function updatePlayer(player, state, input, dt, obstacles) {
   data.velocityX = approach(data.velocityX, targetVX, rate * dt);
   data.velocityZ = approach(data.velocityZ, targetVZ, rate * dt);
 
-  const nx = player.position.x + data.velocityX * dt;
-  const nz = player.position.z + data.velocityZ * dt;
+  moveAxis(player, "x", data.velocityX * dt, 0.38, obstacles);
+  moveAxis(player, "z", data.velocityZ * dt, 0.38, obstacles);
 
-  if (!blocked(nx, player.position.z, 0.42, obstacles)) player.position.x = nx;
-  else data.velocityX = 0;
-
-  if (!blocked(player.position.x, nz, 0.42, obstacles)) player.position.z = nz;
-  else data.velocityZ = 0;
-
-  player.position.x = Math.max(-38, Math.min(38, player.position.x));
-  player.position.z = Math.max(-38, Math.min(38, player.position.z));
+  // Hard bounds are only a safety net around the imported Sendstone map.
+  player.position.x = Math.max(-39, Math.min(39, player.position.x));
+  player.position.z = Math.max(-39, Math.min(39, player.position.z));
 
   data.verticalVelocity -= GRAVITY * dt;
   player.position.y += data.verticalVelocity * dt;
@@ -69,17 +63,43 @@ export function updatePlayer(player, state, input, dt, obstacles) {
   }
 }
 
-function approach(current, target, delta) {
-  if (current < target) return Math.min(target, current + delta);
-  if (current > target) return Math.max(target, current - delta);
-  return target;
+function moveAxis(player, axis, delta, radius, obstacles) {
+  if (Math.abs(delta) < 0.00001) return;
+  const next = player.position[axis] + delta;
+  const x = axis === "x" ? next : player.position.x;
+  const z = axis === "z" ? next : player.position.z;
+
+  if (!blocked(x, z, radius, obstacles)) {
+    player.position[axis] = next;
+    return;
+  }
+
+  // Slide along the surface instead of freezing both axes.
+  const tangential = axis === "x" ? player.userData.velocityZ : player.userData.velocityX;
+  if (Math.abs(tangential) < 0.05) {
+    if (axis === "x") player.userData.velocityX = 0;
+    else player.userData.velocityZ = 0;
+  } else {
+    if (axis === "x") player.userData.velocityX = 0;
+    else player.userData.velocityZ = 0;
+  }
+}
+
+export function isBlocked(x, z, radius, obstacles = []) {
+  return blocked(x, z, radius, obstacles);
 }
 
 function blocked(x, z, radius, obstacles) {
   for (const o of obstacles) {
-    const dx = Math.max(Math.abs(x - o.x) - o.half, 0);
-    const dz = Math.max(Math.abs(z - o.z) - o.half, 0);
+    const dx = Math.max(Math.abs(x - o.x) - (o.halfX ?? o.half ?? 0), 0);
+    const dz = Math.max(Math.abs(z - o.z) - (o.halfZ ?? o.half ?? 0), 0);
     if (dx * dx + dz * dz < radius * radius) return true;
   }
   return false;
+}
+
+function approach(current, target, delta) {
+  if (current < target) return Math.min(target, current + delta);
+  if (current > target) return Math.max(target, current - delta);
+  return target;
 }
