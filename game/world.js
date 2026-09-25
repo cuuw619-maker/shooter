@@ -65,6 +65,8 @@ function skyTexture() {
 
 export function createWorld() {
   const scene = new THREE.Scene();
+  const proceduralRoot = new THREE.Group();
+  scene.add(proceduralRoot);
   scene.background = new THREE.Color(0x9bb6c8);
   scene.fog = new THREE.Fog(0x9bb6c8, 24, 105);
 
@@ -138,7 +140,7 @@ export function createWorld() {
     mesh.position.set(x,h/2,z);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
-    scene.add(mesh);
+    proceduralRoot.add(mesh);
 
     if (solid) {
       obstacles.push({x,z,half:Math.max(w,depth)/2});
@@ -150,7 +152,7 @@ export function createWorld() {
       new THREE.LineBasicMaterial({color:0xd4e1e6,transparent:true,opacity:0.10})
     );
     edge.position.copy(mesh.position);
-    scene.add(edge);
+    proceduralRoot.add(edge);
     return mesh;
   }
 
@@ -185,7 +187,7 @@ export function createWorld() {
       const post = new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,1.25,8),railMat);
       post.position.set(x,.625,z);
       post.castShadow=true;
-      scene.add(post);
+      proceduralRoot.add(post);
     }
   }
 
@@ -193,10 +195,10 @@ export function createWorld() {
     const base = new THREE.Mesh(new THREE.CylinderGeometry(.24,.30,.22,10),new THREE.MeshStandardMaterial({color:0x243036,metalness:.6,roughness:.34}));
     base.position.set(x,.11,z);
     base.castShadow=true;
-    scene.add(base);
+    proceduralRoot.add(base);
     const glow = new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,.75,10),new THREE.MeshBasicMaterial({color:0x70cee2,transparent:true,opacity:.75}));
     glow.position.set(x,.58,z);
-    scene.add(glow);
+    proceduralRoot.add(glow);
   }
 
   addCover(0,-39.5,80,2.8,1.0,0x506067,false);
@@ -204,7 +206,7 @@ export function createWorld() {
   addCover(-39.5,0,1.0,2.8,80,0x506067,false);
   addCover(39.5,0,1.0,2.8,80,0x506067,false);
 
-  return {scene,obstacles,solids};
+  return {scene,obstacles,solids,proceduralRoot};
 }
 
 export function createRenderer() {
