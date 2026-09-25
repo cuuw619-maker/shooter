@@ -200,15 +200,17 @@ function finishRound(winnerSide) {
   health = 100;
   hud.health(100);
   respawn(player, isHost);
-  hud.rounds(roundNumber, score, remoteScore);
 
-  if (score >= ROUNDS_TO_WIN || remoteScore >= ROUNDS_TO_WIN) {
+  const matchFinished = score >= ROUNDS_TO_WIN || remoteScore >= ROUNDS_TO_WIN;
+  if (matchFinished) {
     matchWinner = localWon ? "local" : "remote";
     matchResetAt = performance.now() + MATCH_DELAY;
+    hud.rounds(roundNumber, score, remoteScore);
     hud.match(matchWinner === "local");
   } else {
     roundNumber++;
-    hud.roundStatus("РАУНД ЗАВЕРШЁН • СЛЕДУЮЩИЙ " + roundNumber);
+    hud.rounds(roundNumber, score, remoteScore);
+    hud.roundStatus("СЛЕДУЮЩИЙ РАУНД " + roundNumber);
   }
 }
 
@@ -285,20 +287,23 @@ function loop() {
   const now = performance.now();
 
   // Apply the newest look input before physics so movement and camera share the exact same yaw.
-  if (roundState === "transition" && now >= roundResetAt) {
+  if (matchWinner) {
+    if (now >= matchResetAt) {
+      score = 0;
+      remoteScore = 0;
+      roundNumber = 1;
+      roundState = "live";
+      roundResetAt = 0;
+      matchResetAt = 0;
+      matchWinner = null;
+      hud.rounds(roundNumber, score, remoteScore);
+      hud.roundStatus("ПЕРВЫЙ ДО " + ROUNDS_TO_WIN);
+    } else {
+      roundState = "transition";
+    }
+  } else if (roundState === "transition" && now >= roundResetAt) {
     roundState = "live";
-    hud.roundStatus(matchWinner ? "НОВЫЙ МАТЧ" : "РАУНД " + roundNumber);
-  }
-  if (matchWinner && now >= matchResetAt) {
-    score = 0;
-    remoteScore = 0;
-    roundNumber = 1;
-    roundState = "live";
-    roundResetAt = 0;
-    matchResetAt = 0;
-    matchWinner = null;
-    hud.rounds(roundNumber, score, remoteScore);
-    hud.roundStatus("ПЕРВЫЙ ДО " + ROUNDS_TO_WIN);
+    hud.roundStatus("РАУНД " + roundNumber);
   }
 
   pitch = Math.max(-1.45, Math.min(1.45, pitch + input.lookY * 0.035));
