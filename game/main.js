@@ -11,7 +11,7 @@ const THREE = window.THREE;
 const hud = createHud();
 const input = {
   keyboardX: 0, keyboardZ: 0, moveX: 0, moveY: 0,
-  lookX: 0, lookY: 0, fire() {}, jump() {}
+  lookX: 0, lookY: 0, sprint: false, fire() {}, jump() {}
 };
 
 let room = null;
@@ -67,43 +67,71 @@ function startGame() {
 }
 
 function setupInput() {
+  const keys = new Set();
+  const movementKeys = new Set(["KeyW","KeyA","KeyS","KeyD","ShiftLeft","ShiftRight"]);
+
+  function refreshMovement() {
+    input.keyboardZ = (keys.has("KeyS") ? 1 : 0) - (keys.has("KeyW") ? 1 : 0);
+    input.keyboardX = (keys.has("KeyD") ? 1 : 0) - (keys.has("KeyA") ? 1 : 0);
+    input.sprint = keys.has("ShiftLeft") || keys.has("ShiftRight");
+  }
+
   addEventListener("keydown", e => {
-    if (e.code === "KeyW") input.keyboardZ = -1;
-    if (e.code === "KeyS") input.keyboardZ = 1;
-    if (e.code === "KeyA") input.keyboardX = -1;
-    if (e.code === "KeyD") input.keyboardX = 1;
-    if (e.code === "Space") input.jump();
+    if (movementKeys.has(e.code)) {
+      keys.add(e.code);
+      e.preventDefault();
+      refreshMovement();
+    }
+    if (e.code === "Space") {
+      if (!e.repeat) input.jump();
+      e.preventDefault();
+    }
     if (e.code === "Digit1") weapons?.equip("rifle");
     if (e.code === "Digit2") weapons?.equip("pistol");
     if (e.code === "Digit3") weapons?.equip("sniper");
     if (e.code === "KeyR") weapons?.reload();
   });
+
   addEventListener("keyup", e => {
-    if (e.code === "KeyW" || e.code === "KeyS") input.keyboardZ = 0;
-    if (e.code === "KeyA" || e.code === "KeyD") input.keyboardX = 0;
+    if (movementKeys.has(e.code)) {
+      keys.delete(e.code);
+      e.preventDefault();
+      refreshMovement();
+    }
   });
 
   renderer.domElement.addEventListener("click", () => {
-    const fn = renderer.domElement.requestPointerLock;
-    if (fn) fn.call(renderer.domElement);
+    if (document.pointerLockElement !== renderer.domElement) {
+      renderer.domElement.requestPointerLock?.();
+    }
   });
   addEventListener("mousemove", e => {
     if (document.pointerLockElement === renderer.domElement) {
-      yaw -= e.movementX * 0.0025;
-      pitch -= e.movementY * 0.0025;
-      pitch = Math.max(-1.45, Math.min(1.45, pitch));
+      const sensitivity = 0.0018;
+      yaw -= e.movementX * sensitivity;
+      pitch -= e.movementY * sensitivity;
+      pitch = Math.max(-1.48, Math.min(1.48, pitch));
     }
   });
   renderer.domElement.addEventListener("mousedown", e => {
-    if (e.button === 0) fireHeld = true;
+    if (e.button === 0 && document.pointerLockElement === renderer.domElement) fireHeld = true;
   });
-  renderer.domElement.addEventListener("mouseup", e => {
+  addEventListener("mouseup", e => {
     if (e.button === 0) fireHeld = false;
   });
-  addEventListener("blur", () => { fireHeld = false; });
+  addEventListener("pointerlockchange", () => {
+    if (document.pointerLockElement !== renderer.domElement) fireHeld = false;
+  });
+  addEventListener("blur", () => {
+    keys.clear();
+    input.keyboardX = input.keyboardZ = 0;
+    input.sprint = false;
+    fireHeld = false;
+  });
+  renderer.domElement.addEventListener("contextmenu", e => e.preventDefault());
   input.fire = () => { fireHeld = true; };
   input.stopFire = () => { fireHeld = false; };
-  input.jump = () => { player.position.y = 2.5; };
+  input.jump = () => { if (player) player.userData.jumpQueued = true; };
   addEventListener("resize", () => {
     if (!camera || !renderer) return;
     camera.aspect = innerWidth / innerHeight;
