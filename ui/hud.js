@@ -10,9 +10,11 @@ export function createHud() {
   const weapon = document.getElementById("weapon");
   const hitmarker = document.getElementById("hitmarker");
   const killfeed = document.getElementById("killfeed");
+  const loadingEl = document.getElementById("assetStatus");
 
   return {
     status(text) { status.textContent = text; },
+    loading(text) { if (loadingEl) loadingEl.textContent = text; },
     room(code) { room.textContent = "ROOM " + code; },
     waiting(connected) {
       wait.textContent = connected
