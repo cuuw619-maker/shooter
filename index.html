@@ -49,7 +49,7 @@ button,input{height:50px;border:0;border-radius:12px;font-size:16px}button{paddi
     <div class="small">ПК: WASD — ходьба • Shift — бег • мышь — обзор • ЛКМ — огонь • Space — прыжок • 1/2/3 — оружие • R — перезарядка<br>Телефон: левый стик — ходьба, правый — обзор, FIRE — стрельба, JUMP — прыжок.</div>
   </div>
 </div>
-<div id="hud" class="hidden"><button id="fullscreen" title="Полный экран" aria-label="Полный экран">⛶</button><div id="room"></div><div id="wait"></div><div id="score">ROUND 1  •  0 : 0</div><div id="roundStatus">ПЕРВЫЙ ДО 5</div><div id="assetStatus">ЗАГРУЗКА...</div><div id="weapon">RIFLE</div><div id="ammo">RIFLE 30 / 90</div><div class="cross"></div><div id="hitmarker">×</div><div id="killfeed"></div><div id="health"><div class="hp"></div><span id="healthText">100</span></div></div>
+<div id="hud" class="hidden"><button id="fullscreen" title="Полный экран" aria-label="Полный экран">⛶</button><div id="room"></div><div id="wait"></div><div id="score">ROUND 1  •  0 : 0</div><div id="roundStatus">ПЕРВЫЙ ДО 5</div><div id="assetStatus">SENDSTONE + ARCHIE: ЗАГРУЗКА...</div><div id="weapon">RIFLE</div><div id="ammo">RIFLE 30 / 90</div><div class="cross"></div><div id="hitmarker">×</div><div id="killfeed"></div><div id="health"><div class="hp"></div><span id="healthText">100</span></div></div>
 <div id="mobile" class="hidden"><div class="stick left" id="moveStick"><div class="knob"></div></div><div class="stick look" id="lookStick"><div class="knob"></div></div><button class="shoot" id="fire">FIRE</button><button class="jump" id="jump">JUMP</button><div class="weapon-buttons"><button data-weapon="rifle">1</button><button data-weapon="pistol">2</button><button data-weapon="sniper">3</button><button id="reload">R</button></div></div>
 <div id="siteError"></div>
 <script>
@@ -71,6 +71,6 @@ window.addEventListener("unhandledrejection", function(e) {
 <script src="./vendor/three.min.js"></script>
 <script src="./vendor/GLTFLoader.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
-<script type="module" src="./game/main.js"></script>
+<script type="module" src="./game/main.js?v=20260925-3"></script>
 </body>
 </html>
