@@ -4,6 +4,7 @@ export function createHud() {
   const room = document.getElementById("room");
   const score = document.getElementById("score");
   const hp = document.querySelector(".hp");
+  const healthText = document.getElementById("healthText");
   const ammo = document.getElementById("ammo");
   const weapon = document.getElementById("weapon");
   const hitmarker = document.getElementById("hitmarker");
@@ -18,7 +19,7 @@ export function createHud() {
         : "РАЗМИНКА • ОЖИДАНИЕ ВТОРОГО ИГРОКА";
     },
     score(a, b) { score.textContent = a + " : " + b; },
-    health(value) { hp.style.width = Math.max(0, Math.min(100, value)) + "%"; },
+    health(value) { const v = Math.max(0, Math.min(100, value)); hp.style.width = v + "%"; if (healthText) healthText.textContent = Math.round(v); },
     ammo(current, mag, reserve, reloading) { if (ammo) ammo.textContent = reloading ? current + " • ПЕРЕЗАРЯДКА" : current + "  " + mag + " / " + reserve; },
     weapon(current) { if (weapon) weapon.textContent = current; },
     hit(headshot=false) {
