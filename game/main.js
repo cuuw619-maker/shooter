@@ -34,6 +34,7 @@ let isHost = false;
 let roomCode = "";
 let weapons = null;
 let fireHeld = false;
+let raycaster = null;
 
 function startGame() {
   if (scene) return;
@@ -47,9 +48,18 @@ function startGame() {
   player = createPlayer(camera, isHost);
   scene.add(player);
   weapons = createWeaponSystem(camera);
+  raycaster = new THREE.Raycaster();
   setupInput();
   setupMobile(input);
   setupFullscreen(hud);
+  document.querySelectorAll("[data-weapon]").forEach(btn => btn.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    weapons.equip(btn.dataset.weapon);
+  }));
+  document.getElementById("reload").addEventListener("pointerdown", e => {
+    e.preventDefault();
+    weapons.reload();
+  });
   hud.showGame();
   hud.room(roomCode);
   hud.waiting(false);
@@ -178,10 +188,15 @@ function loop() {
   yaw -= input.lookX * 0.045;
   applyLook(player, camera, {yaw, pitch});
   weapons?.tick(performance.now());
+  if (weapons) {
+    const a = weapons.ammo();
+    hud.weapon(weapons.config().name);
+    hud.ammo(weapons.config().name, a.mag, a.reserve, weapons.reloading);
+  }
   if (fireHeld && weapons) {
     weapons.fire({
       now: performance.now(),
-      raycaster: new THREE.Raycaster(),
+      raycaster,
       camera,
       remoteMesh,
       onDry: () => {},
