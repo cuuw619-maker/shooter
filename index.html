@@ -15,8 +15,8 @@ button,input{height:50px;border:0;border-radius:12px;font-size:16px}button{paddi
 #menu .links{display:flex;gap:8px;margin-top:14px}.links a{flex:1;text-align:center;padding:11px 8px;border-radius:10px;background:#121c2a;color:#bcd0eb;text-decoration:none;font-size:12px;border:1px solid #ffffff12}
 #mobile button{font-family:inherit;user-select:none;-webkit-user-select:none}
 @media (max-width:600px){#wait{top:62px;font-size:11px;max-width:92vw;overflow:hidden;text-overflow:ellipsis}.panel{width:calc(100vw - 24px);padding:22px 18px;border-radius:16px}h1{font-size:34px}.row{gap:8px}.row button{min-width:96px}.row input{font-size:16px}.small{font-size:12px}
-.stick{width:136px;height:136px;bottom:calc(22px + env(safe-area-inset-bottom));}.left{left:16px}.look{right:16px}.stick .knob{width:58px;height:58px;left:37px;top:37px}
-.shoot{right:24px;bottom:calc(190px + env(safe-area-inset-bottom));width:88px;height:88px;font-size:15px}.jump{right:32px;bottom:calc(88px + env(safe-area-inset-bottom));width:82px;height:54px}
+.stick{width:var(--stick-size,136px);height:var(--stick-size,136px);bottom:calc(22px + env(safe-area-inset-bottom));}.left{left:16px}.look{right:16px}.stick .knob{width:58px;height:58px;left:37px;top:37px}
+.shoot{right:24px;bottom:calc(190px + env(safe-area-inset-bottom));width:var(--button-size,88px);height:var(--button-size,88px);font-size:15px}.jump{right:32px;bottom:calc(88px + env(safe-area-inset-bottom));width:var(--button-size,82px);height:var(--jump-height,54px)}
 #health{left:14px;bottom:calc(22px + env(safe-area-inset-bottom));width:155px}#room{left:10px;top:10px}#score{top:10px}
 }input{width:100%;padding:0 15px;background:#121c2a;color:#fff;outline:1px solid #2c3c54;text-align:center;letter-spacing:5px}
 #status{min-height:24px;color:#8ea2bf;margin-top:14px}.hidden{display:none!important}
@@ -86,6 +86,6 @@ window.addEventListener("unhandledrejection", function(e) {
 <script src="./vendor/three.min.js"></script>
 <script src="./vendor/GLTFLoader.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
-<script type="module" src="./game/main.js?v=20260925-6"></script>
+<script type="module" src="./game/main.js?v=20260925-7"></script>
 </body>
 </html>
