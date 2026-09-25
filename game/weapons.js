@@ -100,16 +100,20 @@ export function createWeaponSystem(camera) {
     root.rotation.x = recoil * 0.8;
   }
 
-  function fire({now=performance.now(), raycaster, camera, remoteMesh, onShot, onDry, onHit}) {
+  function fire({now=performance.now(), raycaster, camera, remoteMesh, obstacles=[], triggerPressed=false, onShot, onDry, onHit}) {
     const cfg=WEAPONS[current], ammo=state[current];
+    if (!cfg.automatic && !triggerPressed) return false;
     if (reloading || now-lastShot < cfg.rate) return false;
     if (ammo.mag <= 0) { onDry?.(); reload(now); return false; }
     lastShot=now; ammo.mag--; recoil=cfg.recoil;
     const spreadX=(Math.random()-.5)*cfg.spread, spreadY=(Math.random()-.5)*cfg.spread;
     raycaster.setFromCamera({x:spreadX,y:spreadY},camera);
     const targets=remoteMesh ? remoteMesh.children : [];
-    const hits=targets.length ? raycaster.intersectObjects(targets,true) : [];
-    if (hits.length) onHit?.(cfg.damage,current);
+    const playerHits=targets.length ? raycaster.intersectObjects(targets,true) : [];
+    const wallHits=obstacles.length ? raycaster.intersectObjects(obstacles,true) : [];
+    const playerDistance=playerHits.length ? playerHits[0].distance : Infinity;
+    const wallDistance=wallHits.length ? wallHits[0].distance : Infinity;
+    if (playerDistance < wallDistance) onHit?.(cfg.damage,current);
     onShot?.(current,cfg);
     if (ammo.mag===0 && ammo.reserve>0) reload(now);
     return true;
