@@ -10,7 +10,15 @@ canvas{display:block;width:100%;height:100%}
 #menu{position:fixed;inset:0;z-index:10;display:grid;place-items:center;background:radial-gradient(circle at 50% 30%,#16243b 0,#070a10 55%,#030406 100%)}
 .panel{width:min(420px,92vw);padding:28px;border:1px solid #34445e;border-radius:18px;background:#0b111bd9;backdrop-filter:blur(12px);box-shadow:0 20px 80px #0008}
 h1{margin:0 0 5px;font-size:42px;letter-spacing:5px}p{color:#9eabc0}.row{display:flex;gap:10px;margin-top:12px}
-button,input{height:50px;border:0;border-radius:10px;font-size:16px}button{padding:0 18px;background:#e9eef8;color:#07101c;font-weight:700;cursor:pointer}button.secondary{background:#202d40;color:#fff}input{width:100%;padding:0 15px;background:#121c2a;color:#fff;outline:1px solid #2c3c54;text-align:center;letter-spacing:5px}
+button,input{height:50px;border:0;border-radius:12px;font-size:16px}button{padding:0 18px;background:#e9eef8;color:#07101c;font-weight:800;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}button:active{transform:scale(.97)}button.secondary{background:#202d40;color:#fff}
+#fullscreen{position:absolute;right:14px;top:14px;width:46px;height:46px;padding:0;border:1px solid #ffffff22;background:#07101acc;color:#fff;font-size:22px;line-height:1}
+#menu .links{display:flex;gap:8px;margin-top:14px}.links a{flex:1;text-align:center;padding:11px 8px;border-radius:10px;background:#121c2a;color:#bcd0eb;text-decoration:none;font-size:12px;border:1px solid #ffffff12}
+#mobile button{font-family:inherit;user-select:none;-webkit-user-select:none}
+@media (max-width:600px){.panel{width:calc(100vw - 24px);padding:22px 18px;border-radius:16px}h1{font-size:34px}.row{gap:8px}.row button{min-width:96px}.row input{font-size:16px}.small{font-size:12px}
+.stick{width:136px;height:136px;bottom:calc(22px + env(safe-area-inset-bottom));}.left{left:16px}.look{right:16px}.stick .knob{width:58px;height:58px;left:37px;top:37px}
+.shoot{right:24px;bottom:calc(190px + env(safe-area-inset-bottom));width:88px;height:88px;font-size:15px}.jump{right:32px;bottom:calc(88px + env(safe-area-inset-bottom));width:82px;height:54px}
+#health{left:14px;bottom:calc(22px + env(safe-area-inset-bottom));width:155px}#room{left:10px;top:10px}#score{top:10px}
+}input{width:100%;padding:0 15px;background:#121c2a;color:#fff;outline:1px solid #2c3c54;text-align:center;letter-spacing:5px}
 #status{min-height:24px;color:#8ea2bf;margin-top:14px}.hidden{display:none!important}
 #hud{position:fixed;inset:0;z-index:3;pointer-events:none}.cross{position:absolute;left:50%;top:50%;width:20px;height:20px;transform:translate(-50%,-50%)}.cross:before,.cross:after{content:"";position:absolute;background:#fff}.cross:before{width:20px;height:2px;top:9px}.cross:after{width:2px;height:20px;left:9px}
 #score{position:absolute;top:14px;left:50%;transform:translateX(-50%);background:#07101acc;padding:8px 14px;border-radius:10px;font-weight:700}
@@ -25,14 +33,15 @@ button,input{height:50px;border:0;border-radius:10px;font-size:16px}button{paddi
 <div id="menu">
  <div class="panel">
   <h1>SHOOTER</h1>
-  <p>3D FPS • WebRTC P2P</p>
+  <p>3D FPS • WebRTC P2P</p><p class="small">Игра работает прямо в браузере. Создайте комнату, получите пятизначный код и передайте его второму игроку.</p>
   <button id="host" style="width:100%">СОЗДАТЬ КОМНАТУ</button>
+  <div class="links"><a href="https://github.com/cuuw619-maker/shooter" target="_blank" rel="noopener">GITHUB REPO</a><a href="https://cuuw619-maker.github.io/shooter/" target="_blank" rel="noopener">САЙТ ИГРЫ</a></div>
   <div class="row"><input id="code" inputmode="numeric" maxlength="5" placeholder="КОД 00000"><button id="join" class="secondary">ВОЙТИ</button></div>
   <div id="status">Выберите создание или подключение.</div>
   <div class="small">ПК: WASD + мышь • ЛКМ — огонь • Space — прыжок<br>Телефон: левый стик — ходьба, правый — обзор, FIRE — стрельба.</div>
  </div>
 </div>
-<div id="hud" class="hidden"><div id="room"></div><div id="score">0 : 0</div><div class="cross"></div><div id="health"><div class="hp"></div></div></div>
+<div id="hud" class="hidden"><button id="fullscreen" title="Полный экран" aria-label="Полный экран">⛶</button><div id="room"></div><div id="score">0 : 0</div><div class="cross"></div><div id="health"><div class="hp"></div></div></div>
 <div id="mobile" class="hidden">
  <div class="stick left" id="moveStick"><div class="knob"></div></div>
  <div class="stick look" id="lookStick"><div class="knob"></div></div>
@@ -91,15 +100,24 @@ function addBox(x,y,z,w,h){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,w),n
 function makeRemote(){remoteMesh=new THREE.Group();const body=new THREE.Mesh(new THREE.BoxGeometry(.8,1.4,.5),new THREE.MeshStandardMaterial({color:0xc34b4b}));body.position.y=-.7;const head=new THREE.Mesh(new THREE.SphereGeometry(.3,12,8),new THREE.MeshStandardMaterial({color:0xd89b76}));head.position.y=.15;remoteMesh.add(body,head);scene.add(remoteMesh)}
 function updateScore(){$('score').textContent=score+' : '+remoteScore}
 function shoot(){shooting=true;setTimeout(()=>shooting=false,90);send({t:'hit'});score++;updateScore();send({t:'score',s:score})}
+function toggleFullscreen(){
+ const el=document.documentElement;
+ if(!document.fullscreenElement){(el.requestFullscreen||el.webkitRequestFullscreen)?.call(el).catch?.(()=>{});}
+ else{(document.exitFullscreen||document.webkitExitFullscreen)?.call(document);}
+}
 function addEvents(){
- addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+ $('fullscreen').addEventListener('click',toggleFullscreen);
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+document.addEventListener('fullscreenchange',()=>{$('fullscreen').textContent=document.fullscreenElement?'⛶':'⛶'});
  addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Space')player.position.y=2.5});
  addEventListener('keyup',e=>keys[e.code]=false);
  renderer.domElement.addEventListener('click',()=>renderer.domElement.requestPointerLock?.());
  addEventListener('mousemove',e=>{if(document.pointerLockElement===renderer.domElement){yaw-=e.movementX*.0025;pitch-=e.movementY*.0025;pitch=Math.max(-1.45,Math.min(1.45,pitch))}});
  renderer.domElement.addEventListener('mousedown',e=>{if(e.button===0)shoot()});
- $('fire').addEventListener('touchstart',e=>{e.preventDefault();shoot()},{passive:false});
- $('jump').addEventListener('touchstart',e=>{e.preventDefault();player.position.y=2.5},{passive:false});
+ $('fire').addEventListener('pointerdown',e=>{e.preventDefault();shoot()});
+$('fire').addEventListener('contextmenu',e=>e.preventDefault());
+ $('jump').addEventListener('pointerdown',e=>{e.preventDefault();player.position.y=2.5});
+$('jump').addEventListener('contextmenu',e=>e.preventDefault());
  setupStick($('moveStick'),move);setupStick($('lookStick'),look);
 }
 function setupStick(el,out){
