@@ -1,5 +1,5 @@
 import {createCharacterAnimator} from "../engine/character.js?v=20260925-3";
-import {createColliderFromMesh} from "../engine/collision.js?v=20260925-1";
+import {createColliderFromMesh} from "../engine/collision.js?v=20260925-2";
 const THREE = window.THREE;
 
 const MAP_URL = new URL("../sendstone_new(1).glb?v=20260925-4", import.meta.url).href;
@@ -172,6 +172,12 @@ export function buildMapColliders(root, limit = 360) {
 
     const collider = createColliderFromMesh(mesh, THREE);
     if (!collider) return;
+
+    // Only geometry intersecting the player's standing volume participates.
+    collider.minY = box.min.y;
+    collider.maxY = box.max.y;
+    if (collider.maxY < 0.08 || collider.minY > 1.95) return;
+
     if (collider.halfX > 16 || collider.halfZ > 16) return;
 
     candidates.push(collider);
