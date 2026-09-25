@@ -10,7 +10,10 @@ export function setupMobile(input) {
   fire.addEventListener("pointerdown", e => {
     e.preventDefault();
     input.fire();
+    if (input.startFire) input.startFire();
   });
+  fire.addEventListener("pointerup", () => input.stopFire ? input.stopFire() : null);
+  fire.addEventListener("pointercancel", () => input.stopFire ? input.stopFire() : null);
   fire.addEventListener("contextmenu", e => e.preventDefault());
 
   jump.addEventListener("pointerdown", e => {
