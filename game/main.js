@@ -12,7 +12,7 @@ import {createFx} from "../engine/fx.js";
 import {
   loadMapAsset, loadPlayerAsset, normalizeMap,
   buildMapColliders, collectMapSolids, createPlayerVisual
-} from "./assets.js";
+} from "./assets.js?v=20260925-3";
 
 const THREE = window.THREE;
 const hud = createHud();
@@ -52,6 +52,10 @@ let playerTemplate = null;
 let remoteController = null;
 let importedMap = null;
 let assetLoading = true;
+let mapAssetReady = false;
+let playerAssetReady = false;
+let mapAssetError = "";
+let playerAssetError = "";
 let cameraRecoil = 0;
 let cameraRoll = 0;
 let roundNumber = 1;
@@ -70,6 +74,7 @@ function startGame() {
   scene = world.scene;
   obstacles = world.obstacles;
   solids = world.solids || [];
+  if (world.proceduralRoot) world.proceduralRoot.visible = false;
   renderer = createRenderer();
   camera = createCamera();
   clock = new THREE.Clock();
@@ -96,27 +101,42 @@ function startGame() {
   });
   hud.showGame();
   hud.room(roomCode);
-  hud.loading("ЗАГРУЗКА КАРТЫ И ИГРОКА...");
+  hud.loading("SENDSTONE + ARCHIE: ЗАГРУЗКА...");
   hud.rounds(roundNumber, score, remoteScore);
   hud.roundStatus("ПЕРВЫЙ ДО " + ROUNDS_TO_WIN);
   hud.waiting(false);
+
+  const updateAssetStatus = () => {
+    const mapText = mapAssetReady ? "SENDSTONE ✓" : (mapAssetError ? "SENDSTONE ✕" : "SENDSTONE…");
+    const playerText = playerAssetReady ? "ARCHIE ✓" : (playerAssetError ? "ARCHIE ✕" : "ARCHIE…");
+    hud.loading(mapText + " • " + playerText);
+    assetLoading = !(mapAssetReady && playerAssetReady);
+  };
+
   loadMapAsset().then(gltf => {
     importedMap = normalizeMap(gltf.scene);
+    importedMap.name = "SENDSTONE_MAP";
     scene.add(importedMap);
     obstacles = buildMapColliders(importedMap);
     solids = collectMapSolids(importedMap);
-    if (world.proceduralRoot) world.proceduralRoot.visible = false;
-    hud.loading("КАРТА ЗАГРУЖЕНА");
-    assetLoading = false;
-  }).catch(() => {
-    hud.loading("КАРТА: РЕЗЕРВНАЯ ГЕОМЕТРИЯ");
-    assetLoading = false;
+    mapAssetReady = true;
+    updateAssetStatus();
+  }).catch(error => {
+    mapAssetError = error?.message || String(error);
+    console.error("[SENDSTONE]", error);
+    updateAssetStatus();
   });
 
   loadPlayerAsset().then(gltf => {
     playerTemplate = gltf;
+    playerAssetReady = true;
     if (remoteState) upgradeRemotePlayer();
-  }).catch(() => {});
+    updateAssetStatus();
+  }).catch(error => {
+    playerAssetError = error?.message || String(error);
+    console.error("[ARCHIE]", error);
+    updateAssetStatus();
+  });
 
   requestAnimationFrame(loop);
 }
@@ -250,6 +270,7 @@ function upgradeRemotePlayer() {
   }
   remoteController = createPlayerVisual(playerTemplate);
   remoteMesh = remoteController.root;
+  remoteMesh.name = "ARCHIE_REMOTE_PLAYER";
   remoteMesh.position.set(remoteState.x, remoteState.y, remoteState.z);
   remoteMesh.rotation.y = remoteState.yaw;
   scene.add(remoteMesh);
@@ -260,10 +281,7 @@ function handleData(data) {
   if (!packet) return;
   if (data.t === "state") {
     remoteState = data;
-    if (!remoteMesh) {
-      if (playerTemplate) upgradeRemotePlayer();
-      else remoteMesh = createRemote(scene);
-    }
+    if (!remoteMesh && playerTemplate) upgradeRemotePlayer();
     remoteScore = packet.remoteScore;
     hud.rounds(roundNumber, score, remoteScore);
   } else if (data.t === "score") {
