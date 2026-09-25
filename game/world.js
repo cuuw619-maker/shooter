@@ -24,6 +24,7 @@ export function createWorld() {
   scene.add(grid);
 
   const obstacles = [];
+  const solids = [];
   let seed = 0;
   for (const ch of window.__ROOM_CODE || "00000") seed = (seed * 31 + ch.charCodeAt(0)) >>> 0;
   const random = () => {
@@ -34,8 +35,13 @@ export function createWorld() {
   for (let i = 0; i < 24; i++) {
     const w = 2 + random() * 5;
     const h = 2 + random() * 4;
-    const x = (random() - 0.5) * 65;
-    const z = (random() - 0.5) * 65;
+    let x = 0, z = 0;
+    for (let attempt = 0; attempt < 12; attempt++) {
+      const tx = (random() - 0.5) * 65;
+      const tz = (random() - 0.5) * 65;
+      if (Math.hypot(tx + 8, tz) > 7 && Math.hypot(tx - 8, tz) > 7) { x = tx; z = tz; break; }
+      x = tx; z = tz;
+    }
     const mesh = new THREE.Mesh(
       new THREE.BoxGeometry(w, h, w),
       new THREE.MeshStandardMaterial({color: 0x3e4d5b})
@@ -43,9 +49,10 @@ export function createWorld() {
     mesh.position.set(x, h / 2, z);
     scene.add(mesh);
     obstacles.push({x, z, half:w / 2});
+    solids.push(mesh);
   }
 
-  return {scene, obstacles};
+  return {scene, obstacles, solids};
 }
 
 export function createRenderer() {
