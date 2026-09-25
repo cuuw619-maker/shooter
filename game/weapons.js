@@ -121,11 +121,11 @@ export function createWeaponSystem(camera) {
     root.rotation.x=recoil*0.8;
   }
 
-  function fire({now=performance.now(), raycaster, camera, remoteMesh, obstacles=[], triggerPressed=false, onShot, onDry, onHit}) {
+  function fire({now=performance.now(), raycaster, camera, remoteMesh, obstacles=[], triggerPressed=false, onShot, onDry, onReload, onHit}) {
     const cfg=WEAPONS[current], ammo=state[current];
     if (!cfg.automatic && !triggerPressed) return false;
     if (reloading || now-lastShot<cfg.rate) return false;
-    if (ammo.mag<=0) { onDry?.(); reload(now); return false; }
+    if (ammo.mag<=0) { onDry?.(); if (reload(now)) onReload?.(); return false; }
     lastShot=now; ammo.mag--; recoil=cfg.recoil;
     const spreadX=(Math.random()-.5)*cfg.spread, spreadY=(Math.random()-.5)*cfg.spread;
     raycaster.setFromCamera({x:spreadX,y:spreadY},camera);
@@ -148,7 +148,7 @@ export function createWeaponSystem(camera) {
       const damage=headshot ? Math.round(cfg.damage*1.65) : cfg.damage;
       onHit?.({damage,weapon:current,headshot,point:impact,normal:direction.clone().multiplyScalar(-1)});
     }
-    if (ammo.mag===0 && ammo.reserve>0) reload(now);
+    if (ammo.mag===0 && ammo.reserve>0) { if (reload(now)) onReload?.(); }
     return true;
   }
 
