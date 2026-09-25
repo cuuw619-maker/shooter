@@ -105,7 +105,10 @@ function setupInput() {
     if (e.code === "Digit1") weapons?.equip("rifle");
     if (e.code === "Digit2") weapons?.equip("pistol");
     if (e.code === "Digit3") weapons?.equip("sniper");
-    if (e.code === "KeyR") weapons?.reload();
+    if (e.code === "KeyR") {
+      audio?.unlock();
+      if (weapons?.reload()) audio?.reload();
+    }
   });
 
   addEventListener("keyup", e => {
@@ -181,12 +184,19 @@ function handleData(data) {
   } else if (data.t === "hit") {
     health = Math.max(0, health - (Number(data.damage) || 20));
     hud.health(health);
+    hud.hit(Boolean(data.headshot));
+    audio?.hurt();
     if (health === 0) {
+      room?.send({t:"death"});
       health = 100;
       hud.health(100);
-      audio?.hurt();
       respawn(player, isHost);
     }
+  } else if (data.t === "death") {
+    score++;
+    hud.score(score, remoteScore);
+    sync?.sendScore(score);
+    hud.kill();
   }
 }
 
@@ -258,6 +268,7 @@ function loop() {
       remoteMesh,
       obstacles: solids,
       onDry: () => audio?.dry(),
+      onReload: () => audio?.reload(),
       onShot: info => {
         audio?.shot(info.weapon);
         fx?.tracer(info.from.clone(), info.to.clone());
@@ -267,7 +278,6 @@ function loop() {
         audio?.hit();
         if (info.point) fx?.burst(info.point, info.normal || new THREE.Vector3(0,1,0), "hit");
         room?.send({t:"hit", damage: info.damage, headshot: info.headshot});
-        score++;
         hud.score(score, remoteScore);
         sync?.sendScore(score);
       }
