@@ -7,12 +7,19 @@ let mapPromise = null;
 let playerPromise = null;
 
 function loader() {
+  if (!THREE?.GLTFLoader) {
+    throw new Error("GLTFLoader is not available");
+  }
   return new THREE.GLTFLoader();
 }
 
 function load(url) {
   return new Promise((resolve, reject) => {
-    loader().load(url, resolve, undefined, reject);
+    try {
+      loader().load(url, resolve, undefined, reject);
+    } catch (error) {
+      reject(error);
+    }
   });
 }
 
