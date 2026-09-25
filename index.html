@@ -30,7 +30,7 @@ button,input{height:50px;border:0;border-radius:12px;font-size:16px}button{paddi
 .weapon-buttons{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);display:flex;gap:7px;pointer-events:auto}.weapon-buttons button{width:42px;height:42px;padding:0;background:#07101acc;color:#fff;border:1px solid #fff3}
 @media (pointer:coarse){#mobile{display:block}}
 .small{font-size:13px;color:#7f8da3;margin-top:12px;line-height:1.45}
-#hitmarker{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.7);font-size:30px;font-weight:900;opacity:0;pointer-events:none;text-shadow:0 2px 8px #000;transition:opacity .04s,transform .08s}#hitmarker.show{opacity:1;transform:translate(-50%,-50%) scale(1.08)}#killfeed{position:absolute;left:50%;top:calc(50% + 36px);transform:translateX(-50%);font-size:11px;font-weight:900;letter-spacing:2px;opacity:0;pointer-events:none}#fullscreen:focus{outline:2px solid #ffffff55;outline-offset:2px}.show{animation:feedback .55s ease-out}@keyframes feedback{0%{opacity:1;transform:translateX(-50%) scale(1)}100%{opacity:0;transform:translateX(-50%) translateY(-14px) scale(1.05)}}
+#hitmarker{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.7);font-size:30px;font-weight:900;opacity:0;pointer-events:none;text-shadow:0 2px 8px #000;transition:opacity .04s,transform .08s}#hitmarker.show{opacity:1;transform:translate(-50%,-50%) scale(1.08)}#killfeed{position:absolute;left:50%;top:calc(50% + 36px);transform:translateX(-50%);font-size:11px;font-weight:900;letter-spacing:2px;opacity:0;pointer-events:none}#siteError{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:100;max-width:min(760px,calc(100vw - 28px));padding:10px 14px;border:1px solid #ff686855;border-radius:10px;background:#220b0bee;color:#ffd1d1;font:12px system-ui;opacity:0;pointer-events:none}#siteError.showError{opacity:1}#fullscreen:focus{outline:2px solid #ffffff55;outline-offset:2px}.show{animation:feedback .55s ease-out}@keyframes feedback{0%{opacity:1;transform:translateX(-50%) scale(1)}100%{opacity:0;transform:translateX(-50%) translateY(-14px) scale(1.05)}}
 #healthText{position:relative;z-index:2;width:100%;text-align:center;font-size:11px;font-weight:900;text-shadow:0 1px 4px #000}
 .shoot{box-shadow:0 10px 28px #0008;backdrop-filter:blur(6px)}.jump{border:1px solid #ffffff24;box-shadow:0 10px 26px #0008;backdrop-filter:blur(6px)}.stick{box-shadow:inset 0 0 30px #0004,0 8px 24px #0007}.stick .knob{box-shadow:0 4px 14px #0006}
 @media (max-width:600px){#ammo{right:12px;bottom:14px;font-size:14px}#weapon{right:12px;bottom:53px}#health{left:12px;bottom:14px;width:156px}}
@@ -51,6 +51,23 @@ button,input{height:50px;border:0;border-radius:12px;font-size:16px}button{paddi
 </div>
 <div id="hud" class="hidden"><button id="fullscreen" title="Полный экран" aria-label="Полный экран">⛶</button><div id="room"></div><div id="wait"></div><div id="score">ROUND 1  •  0 : 0</div><div id="roundStatus">ПЕРВЫЙ ДО 5</div><div id="assetStatus">ЗАГРУЗКА...</div><div id="weapon">RIFLE</div><div id="ammo">RIFLE 30 / 90</div><div class="cross"></div><div id="hitmarker">×</div><div id="killfeed"></div><div id="health"><div class="hp"></div><span id="healthText">100</span></div></div>
 <div id="mobile" class="hidden"><div class="stick left" id="moveStick"><div class="knob"></div></div><div class="stick look" id="lookStick"><div class="knob"></div></div><button class="shoot" id="fire">FIRE</button><button class="jump" id="jump">JUMP</button><div class="weapon-buttons"><button data-weapon="rifle">1</button><button data-weapon="pistol">2</button><button data-weapon="sniper">3</button><button id="reload">R</button></div></div>
+<div id="siteError"></div>
+<script>
+window.addEventListener("error", function(e) {
+  const box = document.getElementById("siteError");
+  if (box) {
+    box.textContent = "ОШИБКА: " + (e.message || "неизвестная ошибка");
+    box.classList.add("showError");
+  }
+});
+window.addEventListener("unhandledrejection", function(e) {
+  const box = document.getElementById("siteError");
+  if (box) {
+    box.textContent = "ОШИБКА: " + (e.reason?.message || String(e.reason || "Promise error"));
+    box.classList.add("showError");
+  }
+});
+</script>
 <script src="./vendor/three.min.js"></script>
 <script src="./vendor/GLTFLoader.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
