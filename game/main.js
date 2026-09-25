@@ -1,10 +1,10 @@
 import {createWorld, createRenderer, createCamera} from "./world.js";
 import {createPlayer, respawn, getState, applyLook} from "./player.js";
-import {updatePlayer, isBlocked} from "./physics.js";
+import {updatePlayer, isBlocked} from "./physics.js?v=20260925-2";
 import {createWeaponSystem} from "./weapons.js";
 import {Room} from "../network/room.js";
 import {createSync} from "../network/sync.js";
-import {createHud, setupFullscreen} from "../ui/hud.js?v=20260925-7";
+import {createHud, setupFullscreen} from "../ui/hud.js?v=20260925-8";
 import {setupMobile} from "../ui/mobile.js?v=20260925-3";
 import {createEngine} from "../engine/core.js";
 import {createAudioEngine} from "../engine/audio.js";
@@ -12,7 +12,7 @@ import {createFx} from "../engine/fx.js";
 import {
   loadMapAsset, loadPlayerAsset, normalizeMap,
   buildMapColliders, collectMapSolids, createPlayerVisual
-} from "./assets.js?v=20260925-8";
+} from "./assets.js?v=20260925-9";
 
 const THREE = window.THREE;
 const hud = createHud();
