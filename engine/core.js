@@ -1,8 +1,14 @@
+import {createCollisionWorld} from "./collision.js?v=20260925-1";
+
 const THREE = window.THREE;
 
 export function createEngine({renderer, scene, camera, clock}) {
   const systems = [];
   const effects = [];
+  const collision = createCollisionWorld({
+    cellSize: 4,
+    maxResolveIterations: 6
+  });
 
   function use(system) {
     if (system && typeof system.update === "function") systems.push(system);
@@ -28,6 +34,7 @@ export function createEngine({renderer, scene, camera, clock}) {
     scene,
     camera,
     clock,
+    collision,
     use,
     addEffect,
     update,
