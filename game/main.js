@@ -1,4 +1,4 @@
-import {createWorld, createRenderer, createCamera, createRemote} from "./world.js";
+import {createWorld, createRenderer, createCamera} from "./world.js";
 import {createPlayer, respawn, getState, applyLook} from "./player.js";
 import {updatePlayer, isBlocked} from "./physics.js";
 import {createWeaponSystem} from "./weapons.js";
@@ -286,7 +286,7 @@ function upgradeRemotePlayer() {
   remoteController = createPlayerVisual(playerTemplate);
   remoteMesh = remoteController.root;
   remoteMesh.name = "ARCHIE_REMOTE_PLAYER";
-  remoteMesh.position.set(remoteState.x, remoteState.y, remoteState.z);
+  remoteMesh.position.set(remoteState.x, remoteState.y - 1.6, remoteState.z);
   remoteMesh.rotation.y = remoteState.yaw;
   scene.add(remoteMesh);
 }
@@ -406,7 +406,7 @@ function loop() {
   wasGrounded = player.userData.grounded;
 
   if (remoteMesh && remoteState) {
-    remoteMesh.position.lerp(new THREE.Vector3(remoteState.x, remoteState.y, remoteState.z), 0.25);
+    remoteMesh.position.lerp(new THREE.Vector3(remoteState.x, remoteState.y - 1.6, remoteState.z), 0.25);
     remoteMesh.rotation.y = remoteState.yaw;
     if (remoteController) {
       const dx = remoteMesh.position.x - (remoteController.lastX ?? remoteMesh.position.x);
