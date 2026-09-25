@@ -1,7 +1,7 @@
 const THREE = window.THREE;
 
-const MAP_URL = new URL("../sendstone_new(1).glb", import.meta.url).href;
-const PLAYER_URL = new URL("../archie__standoff_2.glb", import.meta.url).href;
+const MAP_URL = new URL("../sendstone_new(1).glb?v=20260925-4", import.meta.url).href;
+const PLAYER_URL = new URL("../archie__standoff_2.glb?v=20260925-4", import.meta.url).href;
 
 let mapPromise = null;
 let playerPromise = null;
