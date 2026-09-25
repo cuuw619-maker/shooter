@@ -9,6 +9,10 @@ import {setupMobile} from "../ui/mobile.js";
 import {createEngine} from "../engine/core.js";
 import {createAudioEngine} from "../engine/audio.js";
 import {createFx} from "../engine/fx.js";
+import {
+  loadMapAsset, loadPlayerAsset, normalizeMap,
+  buildMapColliders, collectMapSolids, createPlayerVisual
+} from "./assets.js";
 
 const THREE = window.THREE;
 const hud = createHud();
@@ -44,6 +48,10 @@ let engine = null;
 let audio = null;
 let fx = null;
 let wasGrounded = true;
+let playerTemplate = null;
+let remoteController = null;
+let importedMap = null;
+let assetLoading = true;
 let cameraRecoil = 0;
 let cameraRoll = 0;
 let roundNumber = 1;
@@ -88,9 +96,28 @@ function startGame() {
   });
   hud.showGame();
   hud.room(roomCode);
+  hud.loading("ЗАГРУЗКА КАРТЫ И ИГРОКА...");
   hud.rounds(roundNumber, score, remoteScore);
   hud.roundStatus("ПЕРВЫЙ ДО " + ROUNDS_TO_WIN);
   hud.waiting(false);
+  loadMapAsset().then(gltf => {
+    importedMap = normalizeMap(gltf.scene);
+    scene.add(importedMap);
+    obstacles = buildMapColliders(importedMap);
+    solids = collectMapSolids(importedMap);
+    if (world.proceduralRoot) world.proceduralRoot.visible = false;
+    hud.loading("КАРТА ЗАГРУЖЕНА");
+    assetLoading = false;
+  }).catch(() => {
+    hud.loading("КАРТА: РЕЗЕРВНАЯ ГЕОМЕТРИЯ");
+    assetLoading = false;
+  });
+
+  loadPlayerAsset().then(gltf => {
+    playerTemplate = gltf;
+    if (remoteState) upgradeRemotePlayer();
+  }).catch(() => {});
+
   requestAnimationFrame(loop);
 }
 
@@ -214,12 +241,29 @@ function finishRound(winnerSide) {
   }
 }
 
+function upgradeRemotePlayer() {
+  if (!scene || !playerTemplate || !remoteState) return;
+  if (remoteMesh) {
+    scene.remove(remoteMesh);
+    remoteMesh = null;
+    remoteController = null;
+  }
+  remoteController = createPlayerVisual(playerTemplate);
+  remoteMesh = remoteController.root;
+  remoteMesh.position.set(remoteState.x, remoteState.y, remoteState.z);
+  remoteMesh.rotation.y = remoteState.yaw;
+  scene.add(remoteMesh);
+}
+
 function handleData(data) {
   const packet = sync.receive(data);
   if (!packet) return;
   if (data.t === "state") {
     remoteState = data;
-    if (!remoteMesh) remoteMesh = createRemote(scene);
+    if (!remoteMesh) {
+      if (playerTemplate) upgradeRemotePlayer();
+      else remoteMesh = createRemote(scene);
+    }
     remoteScore = packet.remoteScore;
     hud.rounds(roundNumber, score, remoteScore);
   } else if (data.t === "score") {
@@ -330,21 +374,29 @@ function loop() {
   if (remoteMesh && remoteState) {
     remoteMesh.position.lerp(new THREE.Vector3(remoteState.x, remoteState.y, remoteState.z), 0.25);
     remoteMesh.rotation.y = remoteState.yaw;
-
-    const anim = remoteMesh.userData.animation;
-    if (anim) {
-      const dx = remoteMesh.position.x - anim.lastX;
-      const dz = remoteMesh.position.z - anim.lastZ;
+    if (remoteController) {
+      const dx = remoteMesh.position.x - (remoteController.lastX ?? remoteMesh.position.x);
+      const dz = remoteMesh.position.z - (remoteController.lastZ ?? remoteMesh.position.z);
       const remoteSpeed = Math.hypot(dx, dz) / Math.max(dt, 0.001);
-      const walk = Math.min(1, remoteSpeed / 5.4);
-      anim.time += dt * (2.2 + remoteSpeed * 1.6);
-      const swing = Math.sin(anim.time) * 0.62 * walk;
-      anim.legL.rotation.x = swing;
-      anim.legR.rotation.x = -swing;
-      anim.armL.rotation.x = -swing * 0.55;
-      anim.armR.rotation.x = swing * 0.55;
-      anim.lastX = remoteMesh.position.x;
-      anim.lastZ = remoteMesh.position.z;
+      remoteController.update(dt, remoteSpeed > 0.55);
+      remoteController.lastX = remoteMesh.position.x;
+      remoteController.lastZ = remoteMesh.position.z;
+    } else {
+      const anim = remoteMesh.userData.animation;
+      if (anim) {
+        const dx = remoteMesh.position.x - anim.lastX;
+        const dz = remoteMesh.position.z - anim.lastZ;
+        const remoteSpeed = Math.hypot(dx, dz) / Math.max(dt, 0.001);
+        const walk = Math.min(1, remoteSpeed / 5.4);
+        anim.time += dt * (2.2 + remoteSpeed * 1.6);
+        const swing = Math.sin(anim.time) * 0.62 * walk;
+        anim.legL.rotation.x = swing;
+        anim.legR.rotation.x = -swing;
+        anim.armL.rotation.x = -swing * 0.55;
+        anim.armR.rotation.x = swing * 0.55;
+        anim.lastX = remoteMesh.position.x;
+        anim.lastZ = remoteMesh.position.z;
+      }
     }
   }
   engine?.update(dt, now);
