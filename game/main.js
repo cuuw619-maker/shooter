@@ -168,7 +168,7 @@ function setupInput() {
     if (document.pointerLockElement === renderer.domElement) {
       const sensitivity = 0.0018;
       yaw -= e.movementX * sensitivity;
-      pitch += e.movementY * sensitivity;
+      pitch -= e.movementY * sensitivity;
       pitch = Math.max(-1.48, Math.min(1.48, pitch));
     }
   });
@@ -350,7 +350,7 @@ function loop() {
     hud.roundStatus("РАУНД " + roundNumber);
   }
 
-  pitch = Math.max(-1.45, Math.min(1.45, pitch + input.lookY * 0.035));
+  pitch = Math.max(-1.45, Math.min(1.45, pitch - input.lookY * 0.035));
   yaw -= input.lookX * 0.045;
   cameraRecoil *= 0.82;
   cameraRoll *= 0.80;
