@@ -43,6 +43,7 @@ let solids = [];
 let engine = null;
 let audio = null;
 let fx = null;
+let wasGrounded = true;
 
 function startGame() {
   if (scene) return;
@@ -68,7 +69,7 @@ function startGame() {
   document.querySelectorAll("[data-weapon]").forEach(btn => btn.addEventListener("pointerdown", e => {
     e.preventDefault();
     audio?.unlock();
-    weapons.equip(btn.dataset.weapon);
+    if (weapons.equip(btn.dataset.weapon)) audio?.switchWeapon();
   }));
   document.getElementById("reload").addEventListener("pointerdown", e => {
     e.preventDefault();
@@ -102,9 +103,9 @@ function setupInput() {
       if (!e.repeat) input.jump();
       e.preventDefault();
     }
-    if (e.code === "Digit1") weapons?.equip("rifle");
-    if (e.code === "Digit2") weapons?.equip("pistol");
-    if (e.code === "Digit3") weapons?.equip("sniper");
+    if (e.code === "Digit1") { audio?.unlock(); if (weapons?.equip("rifle")) audio?.switchWeapon(); }
+    if (e.code === "Digit2") { audio?.unlock(); if (weapons?.equip("pistol")) audio?.switchWeapon(); }
+    if (e.code === "Digit3") { audio?.unlock(); if (weapons?.equip("sniper")) audio?.switchWeapon(); }
     if (e.code === "KeyR") {
       audio?.unlock();
       if (weapons?.reload()) audio?.reload();
@@ -250,10 +251,38 @@ function loop() {
   yaw -= input.lookX * 0.045;
   applyLook(player, camera, {yaw, pitch});
 
+  const beforeGrounded = player.userData.grounded === true;
   updatePlayer(player, {yaw}, input, dt, obstacles);
+
+  const moveSpeed = Math.hypot(player.userData.velocityX || 0, player.userData.velocityZ || 0);
+  const bobStrength = Math.min(1, moveSpeed / 6.5) * (player.userData.grounded ? 1 : 0);
+  const bobTime = now * 0.0105;
+  camera.position.x += ((Math.sin(bobTime) * 0.018 * bobStrength) - camera.position.x) * Math.min(1, dt * 12);
+  camera.position.y += ((Math.abs(Math.cos(bobTime)) * 0.025 * bobStrength) - camera.position.y) * Math.min(1, dt * 12);
+
+  if (beforeGrounded === false && player.userData.grounded === true) audio?.land();
+  if (player.userData.grounded && moveSpeed > 1.0) audio?.step(Boolean(input.sprint));
+  wasGrounded = player.userData.grounded;
+
   if (remoteMesh && remoteState) {
     remoteMesh.position.lerp(new THREE.Vector3(remoteState.x, remoteState.y, remoteState.z), 0.25);
     remoteMesh.rotation.y = remoteState.yaw;
+
+    const anim = remoteMesh.userData.animation;
+    if (anim) {
+      const dx = remoteMesh.position.x - anim.lastX;
+      const dz = remoteMesh.position.z - anim.lastZ;
+      const remoteSpeed = Math.hypot(dx, dz) / Math.max(dt, 0.001);
+      const walk = Math.min(1, remoteSpeed / 5.4);
+      anim.time += dt * (2.2 + remoteSpeed * 1.6);
+      const swing = Math.sin(anim.time) * 0.62 * walk;
+      anim.legL.rotation.x = swing;
+      anim.legR.rotation.x = -swing;
+      anim.armL.rotation.x = -swing * 0.55;
+      anim.armR.rotation.x = swing * 0.55;
+      anim.lastX = remoteMesh.position.x;
+      anim.lastZ = remoteMesh.position.z;
+    }
   }
   engine?.update(dt, now);
   weapons?.tick(now);
