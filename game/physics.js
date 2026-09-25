@@ -91,9 +91,11 @@ export function isBlocked(x, z, radius, obstacles = []) {
 
 function blocked(x, z, radius, obstacles) {
   for (const o of obstacles) {
-    const dx = Math.max(Math.abs(x - o.x) - (o.halfX ?? o.half ?? 0), 0);
-    const dz = Math.max(Math.abs(z - o.z) - (o.halfZ ?? o.half ?? 0), 0);
-    if (dx * dx + dz * dz < radius * radius) return true;
+    const halfX = Math.max(0.01, o.halfX ?? o.half ?? 0);
+    const halfZ = Math.max(0.01, o.halfZ ?? o.half ?? 0);
+    const dx = Math.max(Math.abs(x - o.x) - halfX, 0);
+    const dz = Math.max(Math.abs(z - o.z) - halfZ, 0);
+    if (dx * dx + dz * dz <= radius * radius) return true;
   }
   return false;
 }
