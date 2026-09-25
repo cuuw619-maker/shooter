@@ -1,7 +1,7 @@
 const THREE = window.THREE;
 
-const MAP_URL = "./sendstone_new%281%29.glb";
-const PLAYER_URL = "./archie__standoff_2.glb";
+const MAP_URL = new URL("../sendstone_new(1).glb", import.meta.url).href;
+const PLAYER_URL = new URL("../archie__standoff_2.glb", import.meta.url).href;
 
 let mapPromise = null;
 let playerPromise = null;
@@ -13,12 +13,26 @@ function loader() {
   return new THREE.GLTFLoader();
 }
 
-function load(url) {
+function load(url, label) {
   return new Promise((resolve, reject) => {
     try {
-      loader().load(url, resolve, undefined, reject);
+      const gltfLoader = loader();
+      gltfLoader.setCrossOrigin?.("anonymous");
+      gltfLoader.load(
+        url,
+        resolve,
+        event => {
+          window.dispatchEvent(new CustomEvent("assetprogress", {
+            detail: {label, loaded: event.loaded || 0, total: event.total || 0}
+          }));
+        },
+        error => {
+          const reason = error?.message || "неизвестная ошибка загрузки";
+          reject(new Error(label + ": " + reason + " [" + url + "]"));
+        }
+      );
     } catch (error) {
-      reject(error);
+      reject(new Error(label + ": " + (error?.message || String(error)) + " [" + url + "]"));
     }
   });
 }
@@ -43,12 +57,12 @@ function normalizeModel(root, targetHeight = 1.8) {
 }
 
 export function loadMapAsset() {
-  if (!mapPromise) mapPromise = load(MAP_URL);
+  if (!mapPromise) mapPromise = load(MAP_URL, "SENDSTONE");
   return mapPromise;
 }
 
 export function loadPlayerAsset() {
-  if (!playerPromise) playerPromise = load(PLAYER_URL);
+  if (!playerPromise) playerPromise = load(PLAYER_URL, "ARCHIE");
   return playerPromise;
 }
 
