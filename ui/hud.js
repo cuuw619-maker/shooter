@@ -4,6 +4,8 @@ export function createHud() {
   const room = document.getElementById("room");
   const score = document.getElementById("score");
   const hp = document.querySelector(".hp");
+  const ammo = document.getElementById("ammo");
+  const weapon = document.getElementById("weapon");
 
   return {
     status(text) { status.textContent = text; },
@@ -15,6 +17,8 @@ export function createHud() {
     },
     score(a, b) { score.textContent = a + " : " + b; },
     health(value) { hp.style.width = Math.max(0, Math.min(100, value)) + "%"; },
+    ammo(current, mag, reserve, reloading) { if (ammo) ammo.textContent = reloading ? current + " • ПЕРЕЗАРЯДКА" : current + "  " + mag + " / " + reserve; },
+    weapon(current) { if (weapon) weapon.textContent = current; },
     showGame() {
       document.getElementById("menu").classList.add("hidden");
       document.getElementById("hud").classList.remove("hidden");
