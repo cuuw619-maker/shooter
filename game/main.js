@@ -121,7 +121,7 @@ function handleData(data) {
 }
 
 function connectRoom(code, host) {
-  if (!/^d{5}$/.test(code)) {
+  if (!/^\d{5}$/.test(code)) {
     hud.status("Код должен содержать ровно 5 цифр.");
     return;
   }
@@ -179,14 +179,12 @@ function loop() {
 }
 
 export function init() {
-  sync = null;
   document.getElementById("host").addEventListener("click", () => {
     const code = document.getElementById("hostCode").value.replace(/\D/g, "").slice(0, 5);
     if (!/^\d{5}$/.test(code)) {
       hud.status("Введите код комнаты из 5 цифр.");
       return;
     }
-    sync = createSync(room);
     connectRoom(code, true);
   });
   document.getElementById("join").addEventListener("click", () => {
