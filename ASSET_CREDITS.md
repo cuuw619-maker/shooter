@@ -36,3 +36,11 @@ The NIGHTLINE map geometry, tactical-character fallback, weapon fallback meshes,
 - The placement/layout and explicit gameplay collider set are based on the ready-made Industrial Asset Yard implementation in RAPHCVR/Krunker:
   https://github.com/RAPHCVR/Krunker/blob/0ce0423004c117daac9b2b0a6d94d90ff5ffde5a/apps/client/src/mapAssets.ts
   https://github.com/RAPHCVR/Krunker/blob/0ce0423004c117daac9b2b0a6d94d90ff5ffde5a/packages/shared/src/constants.ts
+
+
+## Large Cold-War arena map
+- Arena layout/base: adapted from the public-domain CC0 assets and map composition documented by `DFanso/frag-arena`, including Quaternius/Kenney models and ambientCG textures.
+- Source repository: https://github.com/DFanso/frag-arena
+- Model credits and CC0 documentation: https://github.com/DFanso/frag-arena/blob/master/public/models/CREDITS.md
+- Runtime model source directory: https://github.com/DFanso/frag-arena/tree/master/public/models
+- Runtime texture source directory: https://github.com/DFanso/frag-arena/tree/master/public/textures
