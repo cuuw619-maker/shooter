@@ -3,9 +3,11 @@
 ## Runtime external models
 
 ### Weapons
-- M4, USP and AWP: public-domain models documented by the source project:
-  https://github.com/solcloud/Counter-Strike/blob/25a292ff1b9d8ac876f6a96fdbbd6712bbbba803/www/resources/model/README.md
-- The source project credits Quaternius for these weapon models.
+- MP5A5, P226 and M24: ready-made reloadable GLB weapon models derived from Quaternius Ultimate Guns Pack.
+- Source pack license: CC0 1.0 Universal.
+- Runtime source snapshot: https://github.com/AetherRadar/operation-steel-tide/tree/2084aafce812eb75169d68b25eba7290b6c57f70/assets/models/steel_tide_reloadable_weapons
+- The source license documents the Quaternius CC0 provenance and the authored reload mechanisms/sockets contained in the runtime GLBs:
+  https://github.com/AetherRadar/operation-steel-tide/blob/2084aafce812eb75169d68b25eba7290b6c57f70/assets/models/steel_tide_reloadable_weapons/LICENSE.md
 
 ### Character
 - Quaternius Animated Human, stated as CC0 by the source project:
