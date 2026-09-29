@@ -12,14 +12,16 @@
 - Для SNIPER используется внешний CC0 GLB-ассет из GodotVR/godot-xr-tools; есть локальный fallback, поэтому игра не ломается при недоступности внешнего ресурса.
 - Сохранены P2P-комнаты, раунды до 5 побед, hit/score синхронизация, ПК-управление и мобильные стики.
 
-## Внешний ассет
-Снайперская винтовка:
-https://github.com/GodotVR/godot-xr-tools/tree/2d8db860d1adbee97c0968c4b07afe9348263926/assets/3dmodelscc0/models/sniper_rifle
+## Внешние ассеты
 
-В License.txt для этого ассета прямо указана Creative Commons Zero (CC0 1.0) и разрешение на использование в личных, образовательных и коммерческих проектах.
+Основные внешние модели загружаются по HTTPS с публичных GitHub-репозиториев. Для каждой модели есть локальный процедурный fallback, поэтому отсутствие внешнего ресурса не останавливает игру.
 
-Raw GLB:
-https://raw.githubusercontent.com/GodotVR/godot-xr-tools/2d8db860d1adbee97c0968c4b07afe9348263926/assets/3dmodelscc0/models/sniper_rifle/sniper_rifle.glb
+- M4 CARBINE: public-domain модель Quaternius.
+- USP SIDEARM: public-domain модель Quaternius.
+- AWP SNIPER: public-domain модель Quaternius.
+- Tactical character: Quaternius Animated Human, CC0, с клипами Idle / Walk / Run / Jump.
+
+Полные источники и ссылки на лицензии находятся в `ASSET_CREDITS.md`.
 
 ## Архитектура
 shooter/
@@ -61,7 +63,7 @@ python -m http.server 8000
 Для телефона через интернет нужен HTTPS-хостинг, например GitHub Pages.
 
 ## Важное
-Старая карта Sendstone и старый Archie GLB больше не используются игрой. Текущая сцена и персонаж создаются из нового игрового слоя, а старые бинарные ассеты удаляются.
+Старая карта Sendstone и старый Archie GLB больше не используются игрой. Текущая сцена и персонаж создаются из нового игрового слоя, а внешние модели подключаются асинхронно с локальным fallback.
 
 ## Лицензия
 Код проекта: лицензия не задана.
