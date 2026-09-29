@@ -212,6 +212,68 @@ function addPipe(root,x,y,z,sx,sy,sz,rotation,materials) {
   });
 }
 
+const EXTERNAL_ENV_ASSETS={
+  crates:"https://raw.githubusercontent.com/Apomera/AlloFlow/42188dba9a920270b4a88c039bee8d7f2933e996/assets/glb/crates_stacked.glb",
+  barrel:"https://raw.githubusercontent.com/Apomera/AlloFlow/42188dba9a920270b4a88c039bee8d7f2933e996/assets/glb/barrel_decorated.glb"
+};
+
+function loadExternalProp(url){
+  if(!THREE.GLTFLoader) return Promise.resolve(null);
+  return new Promise(resolve=>{
+    try{
+      const loader=new THREE.GLTFLoader();
+      loader.setCrossOrigin?.("anonymous");
+      loader.load(url,gltf=>resolve(gltf.scene),undefined,()=>resolve(null));
+    }catch(_){resolve(null);}
+  });
+}
+
+function normalizeProp(model,targetHeight){
+  model.traverse(o=>{
+    if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}
+  });
+  model.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(model);
+  const size=box.getSize(new THREE.Vector3());
+  const scale=targetHeight/Math.max(size.y,.001);
+  model.scale.setScalar(scale);
+  model.updateMatrixWorld(true);
+  const floorBox=new THREE.Box3().setFromObject(model);
+  model.position.y-=floorBox.min.y;
+  return model;
+}
+
+async function addExternalEnvironmentProps(root){
+  const [crateAsset,barrelAsset]=await Promise.all([
+    loadExternalProp(EXTERNAL_ENV_ASSETS.crates),
+    loadExternalProp(EXTERNAL_ENV_ASSETS.barrel)
+  ]);
+
+  if(crateAsset){
+    const model=normalizeProp(crateAsset,1.75);
+    for(const [x,y,z,r] of [[-34,0,-5,.15],[-34,0,5,-.12],[34,0,-5,-.15],[34,0,5,.18]]){
+      const copy=model.clone(true);
+      copy.position.set(x,y,z);
+      copy.rotation.y=r;
+      copy.name="CC0_KAYKIT_CRATES";
+      root.add(copy);
+    }
+  }
+
+  if(barrelAsset){
+    const model=normalizeProp(barrelAsset,1.25);
+    for(const [x,y,z,r] of [[-35,0,-15,0],[35,0,15,.2],[-15,0,35,.5],[15,0,-35,-.4]]){
+      const copy=model.clone(true);
+      copy.position.set(x,y,z);
+      copy.rotation.y=r;
+      copy.name="CC0_KAYKIT_BARREL";
+      root.add(copy);
+    }
+  }
+
+  return Boolean(crateAsset||barrelAsset);
+}
+
 function makeObjective(root,animations,materials) {
   const hub=new THREE.Group();
   hub.position.set(0,0,0);
@@ -369,7 +431,7 @@ function buildMap() {
 
   makeObjective(root,animations,materials);
 
-  const respawns=[
+  const environmentAssetPromise=addExternalEnvironmentProps(root);\n\n  const respawns=[
     {host:[-32,-32],guest:[32,32]},
     {host:[-31,-20],guest:[31,20]},
     {host:[-25,-33],guest:[25,33]}
@@ -404,7 +466,7 @@ function buildMap() {
     }
   };
 
-  return {root,solids,colliders,animate,spawnPoints:respawns};
+  return {root,solids,colliders,animate,spawnPoints:respawns,environmentAssetPromise};
 }
 
 export function createWorld(){
