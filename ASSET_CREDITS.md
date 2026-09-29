@@ -44,3 +44,12 @@ The NIGHTLINE map geometry, tactical-character fallback, weapon fallback meshes,
 - Model credits and CC0 documentation: https://github.com/DFanso/frag-arena/blob/master/public/models/CREDITS.md
 - Runtime model source directory: https://github.com/DFanso/frag-arena/tree/master/public/models
 - Runtime texture source directory: https://github.com/DFanso/frag-arena/tree/master/public/textures
+
+
+## FALLTIDE RECOVERY ARRAY map
+- Runtime map: `orbital_complex.glb` from AetherRadar/Operation Steel Tide.
+- Source: https://github.com/AetherRadar/operation-steel-tide
+- Runtime asset: https://github.com/AetherRadar/operation-steel-tide/blob/2084aafce812eb75169d68b25eba7290b6c57f70/assets/models/orbital_complex/orbital_complex.glb
+- Rights: mixed-rights runtime asset documented in https://github.com/AetherRadar/operation-steel-tide/blob/2084aafce812eb75169d68b25eba7290b6c57f70/assets/models/orbital_complex/LICENSE.md
+- The composition includes CC0 industrial/environment assets from Trey Ramm/minime453, Majadroid/Maik Hoffmann, Kenney, and CC0 Poly Haven materials, plus NASA-sourced meshes covered by NASA media usage guidelines as documented by the source project.
+- The map layout is the original FALLTIDE RECOVERY ARRAY design, not a copy of Dust/Dust 2 or another commercial game map.
