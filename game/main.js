@@ -1,7 +1,7 @@
-import {createWorld, createRenderer, createCamera} from "./world.js?v=20260929-7";
+import {createWorld, createRenderer, createCamera} from "./world.js?v=20260929-8";
 import {createPlayer, respawn, getState, applyLook} from "./player.js";
-import {updatePlayer, isBlocked} from "./physics.js?v=20260929-2";
-import {createWeaponSystem} from "./weapons.js?v=20260929-3";
+import {updatePlayer, isBlocked} from "./physics.js?v=20260929-3";
+import {createWeaponSystem} from "./weapons.js?v=20260929-4";
 import {Room} from "../network/room.js";
 import {createSync} from "../network/sync.js";
 import {createHud, setupFullscreen} from "../ui/hud.js?v=20260925-9";
@@ -456,7 +456,7 @@ function loop(){
       onShot:info=>{
         audio?.shot(info.weapon);
         player.userData.cameraRecoil=Math.min(.18,(player.userData.cameraRecoil||0)+info.config.recoil*.55);
-        pitch-=info.config.recoil*.20;
+        pitch+=info.config.recoil*.14;
         fx?.tracer(info.from.clone(),info.to.clone());
         fx?.burst(info.from.clone(),info.direction.clone(),"muzzle");
       },
