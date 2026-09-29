@@ -32,8 +32,12 @@ function addArmRig(root){
   const sleeve=mat(0x30383e,.24,.72);
   const armL=new THREE.Group();
   armL.name="view_arm_l";armL.position.set(-.16,-.18,.12);root.add(armL);
-  const foreL=new THREE.Mesh(new THREE.CapsuleGeometry(.07,.44,5,8),skin);
+  const foreL=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,.44,12),skin);
   foreL.rotation.z=.13;foreL.position.set(0,0,.12);foreL.castShadow=true;armL.add(foreL);
+  const elbowL=new THREE.Mesh(new THREE.SphereGeometry(.07,10,8),skin);
+  elbowL.position.set(0,.22,.12);elbowL.castShadow=true;armL.add(elbowL);
+  const wristL=new THREE.Mesh(new THREE.SphereGeometry(.07,10,8),skin);
+  wristL.position.set(0,-.22,.12);wristL.castShadow=true;armL.add(wristL);
   const gloveL=new THREE.Mesh(new THREE.BoxGeometry(.12,.13,.18),glove);
   gloveL.position.set(-.01,-.03,-.12);gloveL.rotation.x=-.25;armL.add(gloveL);
 
