@@ -699,7 +699,7 @@ export function createWorld(){
   };
 }
 
-export function createRenderer(){){
+export function createRenderer(){
   const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:"high-performance"});
   renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.55));
   renderer.setSize(innerWidth,innerHeight);
