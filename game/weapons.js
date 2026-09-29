@@ -284,7 +284,7 @@ export function createWeaponSystem(camera){
 
   return {
     equip,reload,tick,fire,setAim,
-    loadExternalAssets:()=>readyPromise,
+    loadExternalAssets:()=>readyPromise.then(results=>results.some(Boolean)),
     get externalReady(){return {...externalReady};},
     get aiming(){return aiming;},
     get current(){return current;},
