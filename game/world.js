@@ -1,6 +1,6 @@
 const THREE = window.THREE;
 
-export const WORLD_SIZE = 84;
+export const WORLD_SIZE = 240;
 
 function canvasTexture(draw, repeatX=8, repeatY=8) {
   const canvas = document.createElement("canvas");
@@ -231,6 +231,218 @@ function loadExternalProp(url){
   });
 }
 
+
+function loadExternalTexture(url,repeatX=1,repeatY=1){
+  if(!THREE.TextureLoader) return Promise.resolve(null);
+  return new Promise(resolve=>{
+    try{
+      const loader=new THREE.TextureLoader();
+      loader.setCrossOrigin?.("anonymous");
+      loader.load(url,texture=>{
+        texture.wrapS=THREE.RepeatWrapping;
+        texture.wrapT=THREE.RepeatWrapping;
+        texture.repeat.set(repeatX,repeatY);
+        texture.colorSpace=THREE.SRGBColorSpace||texture.colorSpace;
+        texture.anisotropy=4;
+        resolve(texture);
+      },undefined,()=>resolve(null));
+    }catch(_){resolve(null);}
+  });
+}
+
+function prepareColdWarModel(model,targetWidth){
+  model.updateMatrixWorld(true);
+  const before=new THREE.Box3().setFromObject(model);
+  const size=before.getSize(new THREE.Vector3());
+  const width=Math.max(size.x,size.z,.001);
+  model.scale.setScalar(targetWidth/width);
+  model.updateMatrixWorld(true);
+  const after=new THREE.Box3().setFromObject(model);
+  model.position.y-=after.min.y;
+  model.traverse(o=>{
+    if(!o.isMesh)return;
+    o.castShadow=true;
+    o.receiveShadow=true;
+    if(o.material){
+      const mats=Array.isArray(o.material)?o.material:[o.material];
+      for(const material of mats){
+        if(material?.map?.colorSpace!==undefined) material.map.colorSpace=THREE.SRGBColorSpace||material.map.colorSpace;
+        if(material?.roughness!==undefined) material.roughness=Math.max(.72,material.roughness);
+      }
+    }
+  });
+  return model;
+}
+
+function addModelCollider(solids,colliders,model,name){
+  model.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(model);
+  if(!Number.isFinite(box.min.x)) return;
+  const size=box.getSize(new THREE.Vector3());
+  const center=box.getCenter(new THREE.Vector3());
+  const material=new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false});
+  const proxy=new THREE.Mesh(new THREE.BoxGeometry(Math.max(.2,size.x),Math.max(.2,size.y),Math.max(.2,size.z)),material);
+  proxy.position.copy(center);
+  proxy.name="collision_"+name;
+  solids.push(proxy);
+  colliders.push({
+    x:center.x,z:center.z,
+    halfX:Math.max(.1,size.x*.5),
+    halfZ:Math.max(.1,size.z*.5),
+    angle:0,
+    minY:box.min.y,maxY:box.max.y,
+    source:proxy
+  });
+}
+
+async function addColdWarArena(scene,solids,colliders){
+  const BASE="https://raw.githubusercontent.com/DFanso/frag-arena/master/public/models/";
+  const TEX="https://raw.githubusercontent.com/DFanso/frag-arena/master/public/textures/";
+  const ASSETS={
+    house1:BASE+"building_house1.glb",
+    house2:BASE+"building_house2.glb",
+    shed:BASE+"building_shed.glb",
+    shed2:BASE+"building_shed2.glb",
+    tower:BASE+"building_tower.glb",
+    container:BASE+"container.glb",
+    crate:BASE+"crate.glb",
+    barrel:BASE+"barrel.glb",
+    fence:BASE+"fence.glb",
+    tree:BASE+"tree.glb",
+    bush:BASE+"bush.glb",
+    fern:BASE+"fern.glb",
+    grass:BASE+"grass.glb",
+    rock:BASE+"rock.glb"
+  };
+
+  const arena= new THREE.Group();
+  arena.name="READY_CC0_COLD_WAR_ARENA";
+  scene.add(arena);
+
+  const [grassTex,stoneTex,...loaded] = await Promise.all([
+    loadExternalTexture(TEX+"grass.jpg",42,42),
+    loadExternalTexture(TEX+"stone.jpg",6,6),
+    ...Object.values(ASSETS).map(url=>loadExternalProp(url))
+  ]);
+  const names=Object.keys(ASSETS);
+  const reg={};
+  names.forEach((name,i)=>reg[name]=loaded[i]||null);
+
+  const groundMat=new THREE.MeshStandardMaterial({
+    color:0xffffff,
+    map:grassTex,
+    roughness:1
+  });
+  const ground=new THREE.Mesh(new THREE.PlaneGeometry(240,240),groundMat);
+  ground.rotation.x=-Math.PI/2;
+  ground.receiveShadow=true;
+  ground.name="cold_war_grass_ground";
+  arena.add(ground);
+
+  const stoneMat=new THREE.MeshStandardMaterial({
+    color:0xffffff,
+    map:stoneTex,
+    roughness:1,
+    metalness:0
+  });
+  const wallDefs=[
+    [240,8,1.2,0,4,-120],[240,8,1.2,0,4,120],
+    [1.2,8,240,-120,4,0],[1.2,8,240,120,4,0]
+  ];
+  for(const [sx,sy,sz,x,y,z] of wallDefs){
+    const wall=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),stoneMat);
+    wall.position.set(x,y,z);
+    wall.castShadow=true;wall.receiveShadow=true;
+    arena.add(wall);
+    solids.push(wall);
+    colliders.push({x,z,halfX:sx*.5,halfZ:sz*.5,angle:0,minY:0,maxY:sy,source:wall});
+  }
+
+  const cloneAt=(source,width,x,z,rotation=0,solid=false,name="prop")=>{
+    if(!source) return null;
+    const model=source.clone(true);
+    prepareColdWarModel(model,width);
+    model.position.x=x;
+    model.position.z=z;
+    model.rotation.y=rotation;
+    model.name=name;
+    arena.add(model);
+    if(solid)addModelCollider(solids,colliders,model,name);
+    return model;
+  };
+
+  const buildings=[
+    ["house1",18,62,0,.0,true,"cc0_house1_a"],
+    ["house2",16,-62,0,Math.PI,true,"cc0_house2_a"],
+    ["house1",18,0,62,Math.PI*.5,true,"cc0_house1_b"],
+    ["house2",16,0,-62,-Math.PI*.5,true,"cc0_house2_b"],
+    ["house1",17,62,62,Math.PI,true,"cc0_house1_c"],
+    ["house2",18,-62,-62,0,true,"cc0_house2_c"],
+    ["shed",9,38,-8,.3,true,"cc0_shed_a"],
+    ["shed2",8,-38,8,-.3,true,"cc0_shed_b"],
+    ["shed",9,8,38,Math.PI*.5,true,"cc0_shed_c"],
+    ["shed2",8,-8,-38,-Math.PI*.5,true,"cc0_shed_d"],
+    ["tower",9,38,38,.0,true,"cc0_tower_a"],
+    ["tower",9,-38,-38,Math.PI,true,"cc0_tower_b"]
+  ];
+  for(const d of buildings)cloneAt(reg[d[0]],d[1],d[2],d[3],d[4],d[5],d[6]);
+
+  const containers=[
+    [30,-70,0],[-30,70,0],[70,30,Math.PI*.5],[-70,-30,Math.PI*.5],
+    [30,70,0],[-30,-70,0]
+  ];
+  for(const [x,z,r] of containers)cloneAt(reg.container,11,x,z,r,true,"cc0_container");
+
+  const crates=[
+    [-15,-22,1.2],[15,22,-.8],[-24,24,.4],[24,-24,-.4],
+    [-58,26,.2],[58,-26,-.2],[-28,-56,.8],[28,56,-.7]
+  ];
+  for(const [x,z,r] of crates)cloneAt(reg.crate,4.4,x,z,r,true,"cc0_crate");
+
+  const barrels=[
+    [-9,-27],[9,27],[-28,-9],[28,9],[-47,12],[47,-12],[-12,47],[12,-47]
+  ];
+  for(const [x,z] of barrels)cloneAt(reg.barrel,2.3,x,z,0,true,"cc0_barrel");
+
+  const fences=[
+    [-90,0,Math.PI*.5],[-70,0,Math.PI*.5],[-50,0,Math.PI*.5],
+    [90,0,Math.PI*.5],[70,0,Math.PI*.5],[50,0,Math.PI*.5],
+    [0,-90,0],[0,-70,0],[0,-50,0],[0,90,0],[0,70,0],[0,50,0]
+  ];
+  for(const [x,z,r] of fences)cloneAt(reg.fence,6,x,z,r,false,"cc0_fence");
+
+  const trees=[
+    [-106,-106],[-106,106],[106,-106],[106,106],
+    [-105,0],[105,0],[0,-105],[0,105],
+    [-88,62],[88,-62],[-62,-88],[62,88]
+  ];
+  for(const [x,z] of trees)cloneAt(reg.tree,9,x,z,(x+z)*.01,false,"cc0_tree");
+
+  const foliage=[];
+  for(let x=-102;x<=102;x+=14){
+    for(let z=-102;z<=102;z+=14){
+      if(Math.hypot(x,z)<18)continue;
+      const n=Math.abs(x*17+z*31)%3;
+      foliage.push([x+(n-1)*2,z+((n+1)%3-1)*2,n]);
+    }
+  }
+  for(const [x,z,n] of foliage){
+    const source=n===0?reg.grass:n===1?reg.bush:reg.fern;
+    cloneAt(source,n===0?2.2:n===1?3.2:2.7,x,z,(x-z)*.03,false,"cc0_foliage");
+  }
+
+  for(let i=0;i<10;i++){
+    const angle=i*Math.PI*.2;
+    const r=88;
+    const x=Math.cos(angle)*r;
+    const z=Math.sin(angle)*r;
+    cloneAt(reg.rock,5.5,x,z,angle*.7,true,"cc0_rock");
+  }
+
+  const status=Object.values(reg).filter(Boolean).length;
+  return {loaded:status,total:Object.keys(ASSETS).length+2,group:arena};
+}
+
 function normalizeProp(model,targetHeight){
   model.traverse(o=>{
     if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}
@@ -309,7 +521,7 @@ async function addExternalEnvironmentProps(root){
 
 function makeObjective(root,animations,materials) {
   const hub=new THREE.Group();
-  hub.position.set(0,0,0);
+  hub.position.set(0,0,25);
   root.add(hub);
   addBox(hub,[],[],{x:0,y:.65,z:0,sx:4.4,sy:1.3,sz:4.4,material:materials.objectiveBase,solid:false,name:"objective_base"});
   for(let i=0;i<4;i++){
@@ -655,8 +867,8 @@ async function addReadyIndustrialMap(scene,solids,colliders){
 
 export function createWorld(){
   const scene=new THREE.Scene();
-  scene.background=new THREE.Color(0x182531);
-  scene.fog=new THREE.Fog(0x182531,58,190);
+  scene.background=new THREE.Color(0x7f9bb0);
+  scene.fog=new THREE.Fog(0x7f9bb0,95,300);
 
   const sky=new THREE.Mesh(
     new THREE.SphereGeometry(115,32,20),
@@ -670,21 +882,21 @@ export function createWorld(){
   sun.position.set(-30,42,22);
   sun.castShadow=true;
   sun.shadow.mapSize.set(2048,2048);
-  sun.shadow.camera.left=-88;sun.shadow.camera.right=88;
-  sun.shadow.camera.top=88;sun.shadow.camera.bottom=-88;
+  sun.shadow.camera.left=-132;sun.shadow.camera.right=132;
+  sun.shadow.camera.top=132;sun.shadow.camera.bottom=-132;
   sun.shadow.camera.near=1;sun.shadow.camera.far=140;
   scene.add(sun);
 
   const solids=[],colliders=[],animations=[];
-  const readyMapPromise=addReadyIndustrialMap(scene,solids,colliders);
+  const readyMapPromise=addColdWarArena(scene,solids,colliders);
 
   const lightRig=new THREE.Group();
   lightRig.name="READY_MAP_LIGHT_RIG";
   scene.add(lightRig);
-  const lightColors=[0x52a7ff,0xff9c52,0x5bd38d,0xb983ff,0x5fd8ff,0xff657a];
+  const lightColors=[0xffffff,0xffd39a,0xa8c8ff,0xc7ffbf];
   for(let i=0;i<8;i++){
-    const x=-28+(i%4)*18,z=-30+Math.floor(i/4)*60;
-    const p=new THREE.PointLight(lightColors[i%lightColors.length],1.45,24,2);
+    const x=-60+(i%4)*40,z=-72+Math.floor(i/4)*144;
+    const p=new THREE.PointLight(lightColors[i%lightColors.length],1.05,28,2);
     p.position.set(x,6,z);lightRig.add(p);
     animations.push({type:"point",light:p,phase:i*.8});
   }
@@ -723,10 +935,10 @@ export function createWorld(){
   };
 
   const spawnPoints=[
-    {host:[-39*READY_MAP_SCALE,-34*READY_MAP_SCALE],guest:[39*READY_MAP_SCALE,34*READY_MAP_SCALE]},
-    {host:[-39*READY_MAP_SCALE,34*READY_MAP_SCALE],guest:[39*READY_MAP_SCALE,-34*READY_MAP_SCALE]},
-    {host:[-36*READY_MAP_SCALE,-20*READY_MAP_SCALE],guest:[36*READY_MAP_SCALE,20*READY_MAP_SCALE]},
-    {host:[-36*READY_MAP_SCALE,20*READY_MAP_SCALE],guest:[36*READY_MAP_SCALE,-20*READY_MAP_SCALE]}
+    {host:[-104,-92],guest:[104,92]},
+    {host:[-104,92],guest:[104,-92]},
+    {host:[-92,-104],guest:[92,104]},
+    {host:[-92,104],guest:[92,-104]}
   ];
   return {
     scene,
