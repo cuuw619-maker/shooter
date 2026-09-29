@@ -6,7 +6,7 @@ import {Room} from "../network/room.js";
 import {createSync} from "../network/sync.js";
 import {createHud, setupFullscreen} from "../ui/hud.js?v=20260925-9";
 import {setupMobile} from "../ui/mobile.js?v=20260925-4";
-import {createEngine} from "../engine/core.js?v=20260929-2";
+import {createEngine} from "../engine/core.js?v=20260929-3";
 import {createAudioEngine} from "../engine/audio.js";
 import {createFx} from "../engine/fx.js";
 import {createPlayerVisual} from "./assets.js?v=20260929-2";
