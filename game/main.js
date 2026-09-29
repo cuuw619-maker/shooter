@@ -10,6 +10,7 @@ import {createEngine} from "../engine/core.js?v=20260929-3";
 import {createAudioEngine} from "../engine/audio.js";
 import {createFx} from "../engine/fx.js";
 import {createPlayerVisual} from "./assets.js?v=20260929-2";
+import {initMainMenu} from "../ui/menu.js?v=20260929-1";
 
 const THREE=window.THREE;
 const hud=createHud();
@@ -350,8 +351,19 @@ function connectRoom(code,host){
   });
 
   sync=createSync(room);
-  if(host) room.create().catch(error=>hud.status("Не удалось создать комнату: "+(error.type||error.message)));
-  else room.join().catch(error=>hud.status("Не удалось войти: "+(error.type||error.message)));
+  startGame();
+  hud.waiting(false);
+  hud.status(host
+    ? "Запуск локальной игры • подключение P2P..."
+    : "Запуск локальной игры • поиск комнаты...");
+  if(host) room.create().catch(error=>{
+    hud.status("P2P недоступен • игра запущена локально: "+(error.type||error.message));
+    hud.waiting(false);
+  });
+  else room.join().catch(error=>{
+    hud.status("P2P недоступен • игра запущена локально: "+(error.type||error.message));
+    hud.waiting(false);
+  });
 }
 
 function loop(){
@@ -523,4 +535,5 @@ export function init(){
   }
 }
 
+initMainMenu();
 init();
