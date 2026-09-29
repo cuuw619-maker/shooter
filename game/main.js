@@ -107,13 +107,13 @@ function startGame(){
 
   hud.showGame();
   hud.room(roomCode);
-  hud.loading("TACTICAL YARD • СЕТЬ ИНИЦИАЛИЗИРОВАНА");
+  hud.loading("NIGHTLINE FACILITY • ASSETS ONLINE");
   hud.rounds(roundNumber,score,remoteScore);
   hud.roundStatus("ПЕРВЫЙ ДО "+ROUNDS_TO_WIN);
   hud.waiting(false);
 
   weapons.loadExternalAssets().then(loaded=>{
-    hud.loading(loaded ? "TACTICAL YARD • CC0 SNIPER ✓" : "TACTICAL YARD • LOCAL WEAPONS");
+    hud.loading(loaded ? "NIGHTLINE • REMOTE 3D ASSETS ✓" : "NIGHTLINE • LOCAL FALLBACK");
   });
 
   requestAnimationFrame(loop);
