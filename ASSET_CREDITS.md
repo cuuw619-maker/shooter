@@ -13,6 +13,11 @@
 - Runtime file path in that project: `public/models/character.glb`.
 
 ### Environment props
+- Ready-made industrial props from **Kenney Factory Kit 3.0**: robot arm, scanner and large factory boxes.
+- License: CC0 1.0 Universal.
+- Source/license documentation: https://github.com/FrederickPi1969/3d-learn-digital-twins/blob/756ec21e8b910532f311ea8b5726dc3bd621d491/warehouse-sorting-digital-twin/README.md
+
+
 - Crate stack and decorated barrel: KayKit Dungeon Remastered Pack 1.0 by Kay Lousberg.
 - License: CC0 1.0 Universal.
 - Source documentation: https://github.com/Apomera/AlloFlow/blob/42188dba9a920270b4a88c039bee8d7f2933e996/assets/glb/README.md
