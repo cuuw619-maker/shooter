@@ -1,7 +1,7 @@
-import {createWorld, createRenderer, createCamera} from "./world.js?v=20260929-6";
+import {createWorld, createRenderer, createCamera} from "./world.js?v=20260929-7";
 import {createPlayer, respawn, getState, applyLook} from "./player.js";
 import {updatePlayer, isBlocked} from "./physics.js?v=20260929-2";
-import {createWeaponSystem} from "./weapons.js?v=20260929-2";
+import {createWeaponSystem} from "./weapons.js?v=20260929-3";
 import {Room} from "../network/room.js";
 import {createSync} from "../network/sync.js";
 import {createHud, setupFullscreen} from "../ui/hud.js?v=20260925-9";
@@ -463,7 +463,7 @@ function loop(){
       onHit:info=>{
         audio?.hit();
         if(info.point) fx?.burst(info.point,info.normal||new THREE.Vector3(0,1,0),"hit");
-        room?.send({t:"hit",damage:info.damage,headshot:info.headshot});
+        sync?.sendHit({damage:info.damage,headshot:info.headshot});
       }
     });
     firePressed=false;
@@ -471,7 +471,7 @@ function loop(){
     firePressed=false;
   }
 
-  if(room?.isConnected()&&now-lastNet>50){
+  if(room?.isConnected()&&now-lastNet>33){
     lastNet=now;
     sync.sendState(getState(player,{yaw,pitch},score));
   }
