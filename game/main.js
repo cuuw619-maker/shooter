@@ -1,4 +1,4 @@
-import {createWorld, createRenderer, createCamera} from "./world.js?v=20260929-11";
+import {createWorld, createRenderer, createCamera} from "./world.js?v=20260929-12";
 import {createPlayer, respawn, getState, applyLook} from "./player.js";
 import {updatePlayer, isBlocked} from "./physics.js?v=20260929-5";
 import {createWeaponSystem} from "./weapons.js?v=20260929-5";
@@ -84,7 +84,7 @@ function startGame(){
   world.environmentAssetPromise?.then(result=>{
     engine.collision.setColliders(obstacles);
     if(result?.loaded>=result?.total){
-      hud.loading("NIGHTLINE • COLD WAR ARENA • READY ✓");
+      hud.loading("NIGHTLINE • FALLTIDE RECOVERY ARRAY • READY ✓");
     }else{
       hud.loading("NIGHTLINE • ARENA "+(result?.loaded??0)+"/"+(result?.total??0));
     }
