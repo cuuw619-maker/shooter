@@ -1,4 +1,4 @@
-import {createWorld, createRenderer, createCamera} from "./world.js?v=20260929-4";
+import {createWorld, createRenderer, createCamera} from "./world.js?v=20260929-6";
 import {createPlayer, respawn, getState, applyLook} from "./player.js";
 import {updatePlayer, isBlocked} from "./physics.js?v=20260929-1";
 import {createWeaponSystem} from "./weapons.js?v=20260929-2";
@@ -9,7 +9,7 @@ import {setupMobile} from "../ui/mobile.js?v=20260925-4";
 import {createEngine} from "../engine/core.js";
 import {createAudioEngine} from "../engine/audio.js";
 import {createFx} from "../engine/fx.js";
-import {createPlayerVisual} from "./assets.js?v=20260929-1";
+import {createPlayerVisual} from "./assets.js?v=20260929-2";
 
 const THREE=window.THREE;
 const hud=createHud();
@@ -81,6 +81,14 @@ function startGame(){
   raycaster=new THREE.Raycaster();
   engine=createEngine({renderer,scene,camera,clock});
   engine.collision.setColliders(obstacles);
+  world.environmentAssetPromise?.then(result=>{
+    engine.collision.setColliders(obstacles);
+    if(result?.loaded>=result?.total){
+      hud.loading("NIGHTLINE • 25/25 READY-MADE MAP ASSETS ✓");
+    }else{
+      hud.loading("NIGHTLINE • MAP "+(result?.loaded??0)+"/"+(result?.total??25));
+    }
+  });
   audio=createAudioEngine();
   fx=createFx(scene);
   engine.use(worldAnimation);
@@ -403,7 +411,8 @@ function loop(){
     const dx=remoteMesh.position.x-(remoteController?.lastX??remoteMesh.position.x);
     const dz=remoteMesh.position.z-(remoteController?.lastZ??remoteMesh.position.z);
     const remoteSpeed=Math.hypot(dx,dz)/Math.max(dt,.001);
-    remoteController?.update(dt,remoteSpeed>.55,remoteSpeed,false);
+    const remoteAirborne=Math.abs((remoteState.y??1.6)-1.6)>.10;
+    remoteController?.update(dt,remoteSpeed>.55,remoteSpeed,remoteAirborne);
     if(remoteController){
       remoteController.lastX=remoteMesh.position.x;
       remoteController.lastZ=remoteMesh.position.z;
