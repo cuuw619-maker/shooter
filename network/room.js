@@ -5,6 +5,9 @@ export class Room {
     this.peer = null;
     this.conn = null;
     this.handlers = {onOpen, onConnection, onData, onClose, onError};
+    this.serverIndex = 0;
+    this.servers = ["0.peerjs.com", "1.peerjs.com", "2.peerjs.com"];
+    this.destroyed = false;
   }
 
   create() {
@@ -21,39 +24,110 @@ export class Room {
         reject(new Error("PeerJS не загружен"));
         return;
       }
-      const peer = new window.Peer(peerId, {debug: 0});
-      this.peer = peer;
-      let settled = false;
 
-      const fail = (error) => {
-        if (!settled) {
-          settled = true;
-          try { peer.destroy(); } catch (_) {}
-          reject(error);
-        }
-        if (this.handlers.onError) this.handlers.onError(error);
-      };
-
-      peer.on("open", id => {
-        settled = true;
-        this.handlers.onOpen?.(id);
-        resolve(id);
-        if (!this.host) this.attachConnection(peer.connect(this.code, {reliable: true}));
-      });
-
-      peer.on("connection", conn => {
-        if (!this.host) return;
-        if (this.conn && this.conn.open) {
-          conn.close();
+      this.destroyed = false;
+      const tryServer = () => {
+        if (this.destroyed) {
+          reject(new Error("PeerJS соединение закрыто"));
           return;
         }
-        this.attachConnection(conn);
-        this.handlers.onConnection?.(conn);
-      });
 
-      peer.on("error", error => fail(error));
-      peer.on("disconnected", () => this.handlers.onClose?.());
-      peer.on("close", () => this.handlers.onClose?.());
+        const host = this.servers[this.serverIndex % this.servers.length];
+        this.serverIndex++;
+
+        let peer;
+        let settled = false;
+        let retryTimer = 0;
+
+        try {
+          peer = new window.Peer(peerId, {
+            host,
+            port: 443,
+            path: "/peerjs",
+            secure: true,
+            debug: 0,
+            config: {
+              iceServers: [
+                {urls: "stun:stun.l.google.com:19302"},
+                {urls: "stun:stun.cloudflare.com:3478"}
+              ]
+            }
+          });
+        } catch (error) {
+          if (this.serverIndex < this.servers.length) {
+            tryServer();
+          } else {
+            reject(error);
+          }
+          return;
+        }
+
+        this.peer = peer;
+
+        const retry = (error) => {
+          if (settled || this.destroyed) return;
+          try { clearTimeout(retryTimer); } catch (_) {}
+          try { peer.destroy(); } catch (_) {}
+          this.peer = null;
+          if (this.serverIndex < this.servers.length) {
+            retryTimer = setTimeout(tryServer, 180);
+          } else {
+            const finalError = error instanceof Error ? error : new Error(String(error?.message || error || "PeerJS error"));
+            reject(finalError);
+            this.handlers.onError?.(finalError);
+          }
+        };
+
+        peer.on("open", id => {
+          if (settled) return;
+          settled = true;
+          this.handlers.onOpen?.(id);
+          resolve(id);
+
+          if (!this.host) {
+            try {
+              this.attachConnection(peer.connect(this.code, {
+                reliable: true,
+                serialization: "json"
+              }));
+            } catch (error) {
+              this.handlers.onError?.(error);
+            }
+          }
+        });
+
+        peer.on("connection", conn => {
+          if (!this.host) return;
+          if (this.conn && this.conn.open) {
+            conn.close();
+            return;
+          }
+          this.attachConnection(conn);
+          this.handlers.onConnection?.(conn);
+        });
+
+        peer.on("error", error => {
+          const retryable =
+            error?.type === "server-error" ||
+            error?.type === "socket-error" ||
+            error?.type === "socket-closed" ||
+            error?.type === "network" ||
+            error?.type === "browser-incompatible";
+          if (retryable || !settled) retry(error);
+          else this.handlers.onError?.(error);
+        });
+
+        peer.on("disconnected", () => {
+          if (this.destroyed) return;
+          this.handlers.onClose?.();
+        });
+
+        peer.on("close", () => {
+          if (!this.destroyed) this.handlers.onClose?.();
+        });
+      };
+
+      tryServer();
     });
   }
 
@@ -73,6 +147,7 @@ export class Room {
   }
 
   destroy() {
+    this.destroyed = true;
     try { this.conn?.close(); } catch (_) {}
     try { this.peer?.destroy(); } catch (_) {}
     this.conn = null;
