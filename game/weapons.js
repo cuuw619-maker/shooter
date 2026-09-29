@@ -1,9 +1,10 @@
+import {loadAssetGLTF} from "./asset-loader.js?v=20260929-1";
 const THREE=window.THREE;
 
 const EXTERNALS={
-  rifle:"https://raw.githubusercontent.com/AetherRadar/operation-steel-tide/2084aafce812eb75169d68b25eba7290b6c57f70/assets/models/steel_tide_reloadable_weapons/mp5a5_reloadable.glb",
-  pistol:"https://raw.githubusercontent.com/AetherRadar/operation-steel-tide/2084aafce812eb75169d68b25eba7290b6c57f70/assets/models/steel_tide_reloadable_weapons/p226_reloadable.glb",
-  sniper:"https://raw.githubusercontent.com/AetherRadar/operation-steel-tide/2084aafce812eb75169d68b25eba7290b6c57f70/assets/models/steel_tide_reloadable_weapons/m24_reloadable.glb"
+  rifle:"rifle",
+  pistol:"pistol",
+  sniper:"sniper"
 };
 
 export const WEAPONS={
@@ -182,11 +183,7 @@ export function createWeaponSystem(camera){
 
   async function loadExternal(id){
     if(!THREE.GLTFLoader||external[id]) return Boolean(external[id]);
-    return new Promise(resolve=>{
-      try{
-        const loader=new THREE.GLTFLoader();
-        loader.setCrossOrigin?.("anonymous");
-        loader.load(EXTERNALS[id],gltf=>{
+    return loadAssetGLTF(EXTERNALS[id]).then(gltf=>{
           const targetLength=id==="rifle"?1.55:id==="pistol"?.72:1.74;
           const model=normalizeExternalWeapon(gltf.scene,targetLength);
           model.name="EXTERNAL_"+id.toUpperCase()+"_READY_RELOADABLE";
@@ -203,10 +200,8 @@ export function createWeaponSystem(camera){
             root.remove(fallback);
           }
           switchVisible();
-          resolve(true);
-        },undefined,()=>resolve(false));
-      }catch(_){resolve(false);}
-    });
+          return true;
+        }).catch(()=>false);
   }
 
   const readyPromise=Promise.all(Object.keys(EXTERNALS).map(loadExternal));
