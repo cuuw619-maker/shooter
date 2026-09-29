@@ -54,12 +54,12 @@ export function createPlayerVisual() {
     arm.name = side < 0 ? "leftarm" : "rightarm";
     arm.position.set(side*.43,1.22,0);
     root.add(arm);
-    part(arm,new THREE.CapsuleGeometry(.11,.43,5,8),armorDark,"upperarm_"+sx,[0,-.22,0],[0,0,side*.08]);
+    part(arm,new THREE.CylinderGeometry(.11,.11,.55,10),armorDark,"upperarm_"+sx,[0,-.22,0],[0,0,side*.08]);
     const fore = new THREE.Group();
     fore.name = side < 0 ? "lefthand" : "righthand";
     fore.position.set(0,-.52,-.02);
     arm.add(fore);
-    part(fore,new THREE.CapsuleGeometry(.09,.36,5,8),fabric,"forearm_"+sx,[0,-.18,-.01]);
+    part(fore,new THREE.CylinderGeometry(.09,.09,.48,10),fabric,"forearm_"+sx,[0,-.18,-.01]);
     part(fore,new THREE.SphereGeometry(.105,10,8),skin,"hand_"+sx,[0,-.40,-.05]);
     part(fore,new THREE.BoxGeometry(.16,.08,.18),armorDark,"glove_"+sx,[0,-.40,-.05]);
   }
@@ -70,12 +70,12 @@ export function createPlayerVisual() {
     leg.name = side < 0 ? "leftleg" : "rightleg";
     leg.position.set(side*.18,.63,0);
     root.add(leg);
-    part(leg,new THREE.CapsuleGeometry(.13,.48,5,8),fabric,"thigh_"+sx,[0,-.22,0]);
+    part(leg,new THREE.CylinderGeometry(.13,.13,.60,10),fabric,"thigh_"+sx,[0,-.22,0]);
     const shin = new THREE.Group();
     shin.name = "shin_"+sx;
     shin.position.set(0,-.55,0);
     leg.add(shin);
-    part(shin,new THREE.CapsuleGeometry(.115,.43,5,8),armorDark,"shin_"+sx,[0,-.18,0]);
+    part(shin,new THREE.CylinderGeometry(.115,.115,.55,10),armorDark,"shin_"+sx,[0,-.18,0]);
     part(shin,new THREE.BoxGeometry(.22,.12,.45),boot,"boot_"+sx,[0,-.43,-.11]);
   }
 
