@@ -1,215 +1,127 @@
-import {createCharacterAnimator} from "../engine/character.js?v=20260925-3";
-import {createColliderFromMesh} from "../engine/collision.js?v=20260925-2";
+import {createCharacterAnimator} from "../engine/character.js?v=20260929-1";
 const THREE = window.THREE;
 
-const MAP_URL = new URL("../sendstone_new(1).glb?v=20260925-4", import.meta.url).href;
-const PLAYER_URL = new URL("../archie__standoff_2.glb?v=20260925-4", import.meta.url).href;
+function material(color, roughness=.7, metalness=.05) {
+  return new THREE.MeshStandardMaterial({color, roughness, metalness});
+}
 
-let mapPromise = null;
-let playerPromise = null;
+function part(root, geometry, mat, name, position, rotation=[0,0,0]) {
+  const mesh = new THREE.Mesh(geometry, mat);
+  mesh.name = name;
+  mesh.position.set(...position);
+  mesh.rotation.set(...rotation);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  root.add(mesh);
+  return mesh;
+}
 
-function loader() {
-  if (!THREE?.GLTFLoader) {
-    throw new Error("GLTFLoader is not available");
+export function createPlayerVisual() {
+  const root = new THREE.Group();
+  root.name = "TACTICAL_PLAYER";
+
+  const armor = material(0x33404a,.62,.35);
+  const armorDark = material(0x1a2026,.72,.42);
+  const fabric = material(0x20282f,.9,.02);
+  const skin = material(0xb97d60,.8,.02);
+  const helmet = material(0x11171c,.54,.38);
+  const visor = new THREE.MeshStandardMaterial({
+    color:0x78a8bb, metalness:.45, roughness:.2, emissive:0x173441, emissiveIntensity:.5
+  });
+  const boot = material(0x0f1215,.72,.32);
+  const accent = material(0xc28b3e,.5,.45);
+
+  const chest = new THREE.Group();
+  chest.name = "chest";
+  chest.position.set(0,1.02,0);
+  root.add(chest);
+  part(chest,new THREE.BoxGeometry(.64, .9, .36),fabric,"torso",[0,0,0]);
+  part(chest,new THREE.BoxGeometry(.72, .48, .42),armor,"plate",[0,.14,-.02]);
+  part(chest,new THREE.BoxGeometry(.78, .18, .44),armorDark,"belt",[0,-.25,0]);
+  part(chest,new THREE.BoxGeometry(.16,.34,.41),accent,"radio",[.37,.13,.0]);
+
+  const head = new THREE.Group();
+  head.name = "head";
+  head.position.set(0,1.70,0);
+  root.add(head);
+  part(head,new THREE.SphereGeometry(.22,16,12),skin,"face",[0,-.02,.01]);
+  part(head,new THREE.SphereGeometry(.24,16,10),helmet,"helmet",[0,.08,0]);
+  part(head,new THREE.BoxGeometry(.34,.07,.04),visor,"visor",[0,.02,-.205]);
+
+  for (const side of [-1,1]) {
+    const sx = side < 0 ? "L" : "R";
+    const arm = new THREE.Group();
+    arm.name = side < 0 ? "leftarm" : "rightarm";
+    arm.position.set(side*.43,1.22,0);
+    root.add(arm);
+    part(arm,new THREE.CapsuleGeometry(.11,.43,5,8),armorDark,"upperarm_"+sx,[0,-.22,0],[0,0,side*.08]);
+    const fore = new THREE.Group();
+    fore.name = side < 0 ? "lefthand" : "righthand";
+    fore.position.set(0,-.52,-.02);
+    arm.add(fore);
+    part(fore,new THREE.CapsuleGeometry(.09,.36,5,8),fabric,"forearm_"+sx,[0,-.18,-.01]);
+    part(fore,new THREE.SphereGeometry(.105,10,8),skin,"hand_"+sx,[0,-.40,-.05]);
+    part(fore,new THREE.BoxGeometry(.16,.08,.18),armorDark,"glove_"+sx,[0,-.40,-.05]);
   }
-  return new THREE.GLTFLoader();
-}
 
-function load(url, label) {
-  return new Promise((resolve, reject) => {
-    try {
-      const gltfLoader = loader();
-      gltfLoader.setCrossOrigin?.("anonymous");
-      gltfLoader.load(
-        url,
-        resolve,
-        event => {
-          window.dispatchEvent(new CustomEvent("assetprogress", {
-            detail: {label, loaded: event.loaded || 0, total: event.total || 0}
-          }));
-        },
-        error => {
-          const reason = error?.message || "неизвестная ошибка загрузки";
-          reject(new Error(label + ": " + reason + " [" + url + "]"));
-        }
-      );
-    } catch (error) {
-      reject(new Error(label + ": " + (error?.message || String(error)) + " [" + url + "]"));
-    }
-  });
-}
+  for (const side of [-1,1]) {
+    const sx = side < 0 ? "L" : "R";
+    const leg = new THREE.Group();
+    leg.name = side < 0 ? "leftleg" : "rightleg";
+    leg.position.set(side*.18,.63,0);
+    root.add(leg);
+    part(leg,new THREE.CapsuleGeometry(.13,.48,5,8),fabric,"thigh_"+sx,[0,-.22,0]);
+    const shin = new THREE.Group();
+    shin.name = "shin_"+sx;
+    shin.position.set(0,-.55,0);
+    leg.add(shin);
+    part(shin,new THREE.CapsuleGeometry(.115,.43,5,8),armorDark,"shin_"+sx,[0,-.18,0]);
+    part(shin,new THREE.BoxGeometry(.22,.12,.45),boot,"boot_"+sx,[0,-.43,-.11]);
+  }
 
-function normalizeModel(root, targetHeight = 1.8) {
-  const box = new THREE.Box3().setFromObject(root);
-  const size = box.getSize(new THREE.Vector3());
-  const center = box.getCenter(new THREE.Vector3());
-  const height = Math.max(size.y, 0.001);
-  const scale = targetHeight / height;
-  root.scale.multiplyScalar(scale);
-  root.position.x -= center.x * scale;
-  root.position.y -= box.min.y * scale;
-  root.position.z -= center.z * scale;
-  root.traverse(o => {
-    if (o.isMesh) {
-      o.castShadow = true;
-      o.receiveShadow = true;
-    }
-  });
-  return root;
-}
+  const backpack = part(root,new THREE.BoxGeometry(.38,.6,.22),armorDark,"backpack",[0,1.0,.25]);
+  backpack.rotation.x = -0.04;
 
-export function loadMapAsset() {
-  if (!mapPromise) mapPromise = load(MAP_URL, "SENDSTONE");
-  return mapPromise;
-}
-
-export function loadPlayerAsset() {
-  if (!playerPromise) playerPromise = load(PLAYER_URL, "ARCHIE");
-  return playerPromise;
-}
-
-export function normalizeMap(root, targetSize = 74) {
-  root.updateMatrixWorld(true);
-  const box = new THREE.Box3().setFromObject(root);
-  const size = box.getSize(new THREE.Vector3());
-  const horizontal = Math.max(size.x, size.z, 0.001);
-  const scale = targetSize / horizontal;
-  root.scale.multiplyScalar(scale);
-  root.updateMatrixWorld(true);
-  const finalBox = new THREE.Box3().setFromObject(root);
-  const finalCenter = finalBox.getCenter(new THREE.Vector3());
-  root.position.x -= finalCenter.x;
-  root.position.z -= finalCenter.z;
-  root.position.y -= finalBox.min.y;
-  root.traverse(o => {
-    if (o.isMesh) {
-      o.castShadow = true;
-      o.receiveShadow = true;
-    }
-  });
-  return root;
-}
-
-export function createPlayerVisual(template) {
-  const root = template.scene.clone(true);
-  normalizeModel(root, 1.8);
-  const mixers = template.animations?.length ? new THREE.AnimationMixer(root) : null;
-  const clips = template.animations || [];
-  const named = clips.reduce((map, clip) => {
-    map[clip.name.toLowerCase()] = clip;
-    return map;
-  }, {});
-  const findClip = words => {
-    for (const word of words) {
-      const key = Object.keys(named).find(name => name.includes(word));
-      if (key) return named[key];
-    }
-    return clips[0] || null;
-  };
-  const idle = findClip(["idle","stand"]);
-  const walk = findClip(["walk","run","move"]);
+  // Invisible gameplay hit zones.
   const bodyHit = new THREE.Mesh(
-    new THREE.BoxGeometry(0.62, 1.24, 0.48),
-    new THREE.MeshBasicMaterial({transparent:true, opacity:0, depthWrite:false})
+    new THREE.BoxGeometry(.70,1.32,.52),
+    new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false})
   );
-  bodyHit.position.set(0,0.78,0);
+  bodyHit.name = "BODY_HITBOX";
+  bodyHit.position.set(0,.88,0);
   bodyHit.userData.hitbox = "body";
+
   const headHit = new THREE.Mesh(
-    new THREE.SphereGeometry(0.25, 12, 8),
-    new THREE.MeshBasicMaterial({transparent:true, opacity:0, depthWrite:false})
+    new THREE.SphereGeometry(.245,12,8),
+    new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false})
   );
-  headHit.position.set(0,1.47,0);
+  headHit.name = "HEAD_HITBOX";
+  headHit.position.set(0,1.64,0);
   headHit.userData.hitbox = "head";
-  root.add(bodyHit, headHit);
+  root.add(bodyHit,headHit);
 
   const animator = createCharacterAnimator(root);
-  const controller = {
+  let lastSpeed = 0;
+  let lastAirborne = false;
+
+  return {
     root,
-    mixer: mixers,
-    animator,
-    idleAction: idle && mixers ? mixers.clipAction(idle) : null,
-    walkAction: walk && mixers ? mixers.clipAction(walk) : null,
-    state: "",
-    update(dt, moving, speed = 0, airborne = false) {
-      const action = moving ? this.walkAction : this.idleAction;
-      if (action && this.state !== (moving ? "walk" : "idle")) {
-        if (this.state) {
-          const prev = moving ? this.idleAction : this.walkAction;
-          prev?.fadeOut(0.15);
-        }
-        action.reset().fadeIn(0.15).play();
-        this.state = moving ? "walk" : "idle";
-      }
-      this.mixer?.update(dt);
-      this.animator?.update(dt, moving, speed || (moving ? 5.5 : 0), airborne);
+    update(dt, moving, speed=0, airborne=false) {
+      lastSpeed += (speed - lastSpeed) * Math.min(1,dt*10);
+      lastAirborne = airborne;
+      animator.update(dt,moving,lastSpeed,lastAirborne);
     }
   };
-  return controller;
 }
 
-export function buildMapColliders(root, limit = 360) {
-  const candidates = [];
-  root.updateMatrixWorld(true);
-
-  root.traverse(mesh => {
-    if (!mesh.isMesh || !mesh.geometry) return;
-
-    const name = (mesh.name || "").toLowerCase();
-    if (/decal|light|lamp|leaf|grass|plant|trim|wire|line|fx|trigger/.test(name)) return;
-
-    const box = new THREE.Box3().setFromObject(mesh);
-    const size = box.getSize(new THREE.Vector3());
-    const center = box.getCenter(new THREE.Vector3());
-
-    if (size.y < 0.48) return;
-    if (size.x < 0.18 && size.z < 0.18) return;
-    if (center.y < 0.08) return;
-
-    // Avoid turning an entire floor/roof or outside shell into a solid box.
-    const footprint = size.x * size.z;
-    if (footprint > 260) return;
-    if (size.x > 30 && size.z > 30) return;
-
-    const collider = createColliderFromMesh(mesh, THREE);
-    if (!collider) return;
-
-    // Only geometry intersecting the player's standing volume participates.
-    collider.minY = box.min.y;
-    collider.maxY = box.max.y;
-    if (collider.maxY < 0.08 || collider.minY > 1.95) return;
-
-    if (collider.halfX > 16 || collider.halfZ > 16) return;
-
-    candidates.push(collider);
-  });
-
-  // Prefer structural geometry over tiny decorative pieces.
-  candidates.sort((a, b) => {
-    const aa = a.halfX * a.halfZ;
-    const bb = b.halfX * b.halfZ;
-    return bb - aa;
-  });
-
+export function buildMapColliders(root) {
   const colliders = [];
-  for (const candidate of candidates) {
-    const duplicate = colliders.some(existing =>
-      Math.abs(existing.x - candidate.x) < 0.10 &&
-      Math.abs(existing.z - candidate.z) < 0.10 &&
-      Math.abs(existing.halfX - candidate.halfX) < 0.10 &&
-      Math.abs(existing.halfZ - candidate.halfZ) < 0.10 &&
-      Math.abs(existing.angle - candidate.angle) < 0.08
-    );
-    if (duplicate) continue;
-    colliders.push(candidate);
-    if (colliders.length >= limit) break;
-  }
-
+  root?.userData?.colliders?.forEach(c => colliders.push(c));
   return colliders;
 }
 
 export function collectMapSolids(root) {
   const solids = [];
-  root.updateMatrixWorld(true);
-  root.traverse(o => { if (o.isMesh) solids.push(o); });
+  root?.traverse?.(o => { if (o.isMesh) solids.push(o); });
   return solids;
 }
