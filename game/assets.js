@@ -1,9 +1,6 @@
+import {loadAssetGLTF} from "./asset-loader.js?v=20260929-1";
 import {createCharacterAnimator} from "../engine/character.js?v=20260929-2";
 const THREE=window.THREE;
-
-const CHARACTER_URL=
-  "https://raw.githubusercontent.com/Glowin/messager/e8b1fbbe6afc7874f3a4feac66f02519261b11a3/"+
-  "public/models/character.glb";
 
 function material(color,roughness=.7,metalness=.05){
   return new THREE.MeshStandardMaterial({color,roughness,metalness});
@@ -169,9 +166,7 @@ export function createPlayerVisual(){
   };
 
   if(THREE.GLTFLoader){
-    try{
-      const loader=new THREE.GLTFLoader();
-      loader.load(CHARACTER_URL,gltf=>{
+    loadAssetGLTF("character").then(gltf=>{
         if(disposed) return;
         const model=normalizeCharacter(gltf.scene);
         model.name="CC0_ANIMATED_HUMAN";
@@ -189,8 +184,7 @@ export function createPlayerVisual(){
         if(!actions.idle && gltf.animations?.[0]) actions.idle=mixer.clipAction(gltf.animations[0]);
         setExternalAction("idle",0);
         externalReady=true;
-      },undefined,()=>{});
-    }catch(_){}
+    }).catch(()=>{});
   }
 
   return {
