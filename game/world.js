@@ -81,8 +81,8 @@ function addBox(root, solids, colliders, {
     solids.push(mesh);
     colliders.push({
       x, z,
-      halfX: Math.abs(sx * Math.cos(rotation)) / 2 + Math.abs(sz * Math.sin(rotation)) / 2,
-      halfZ: Math.abs(sz * Math.cos(rotation)) / 2 + Math.abs(sx * Math.sin(rotation)) / 2,
+      halfX: Math.abs(sx) / 2,
+      halfZ: Math.abs(sz) / 2,
       angle: rotation,
       minY: y - sy / 2,
       maxY: y + sy / 2,
