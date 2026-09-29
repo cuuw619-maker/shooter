@@ -505,27 +505,27 @@ function buildMap() {
 }
 
 const READY_MAP_BASE="https://raw.githubusercontent.com/RAPHCVR/Krunker/0ce0423004c117daac9b2b0a6d94d90ff5ffde5a/apps/client/public/assets/maps/kenney-industrial/";
-const READY_MAP_SCALE=1.35;
+const READY_MAP_SCALE=1.65;
 const READY_MAP_SPECS=[
   ["building-a.glb",-31,0,-24,Math.PI*.5,2.2,0xc4b79a],
   ["building-b.glb",31,0,24,-Math.PI*.5,2.2,0xaebec0],
   ["building-c.glb",-31,0,24,Math.PI*.5,2.2,0xb8b8ad],
-  ["building-h.glb",-22,0,-10,Math.PI*.5,3.8,0xd4c7a8],
+  ["building-h.glb",-22,0,-10,Math.PI*.5,3.8,0x5c9a83],
   ["building-e.glb",31,0,-24,-Math.PI*.5,2.2,0x9fb0a4],
   ["building-f.glb",-14,0,-28,0,2.1,0xb5ad9a],
   ["building-g.glb",14,0,28,Math.PI,2.1,0xadb7c1],
-  ["building-k.glb",22,0,10,-Math.PI*.5,3.8,0xc9d0c3],
+  ["building-k.glb",22,0,10,-Math.PI*.5,3.8,0x9b6fbc],
   ["building-d.glb",-20,0,17,0,3.6,0xc7b58f],
   ["building-i.glb",-14,0,28,0,2.1,0xb3b8b0],
   ["building-j.glb",14,0,-28,Math.PI,2.1,0xa9b7bd],
   ["building-p.glb",20,0,-17,Math.PI,3.6,0xd1c4aa],
   ["building-l.glb",-8,0,-13,Math.PI*.5,2.0,0xb0b6a6],
   ["building-m.glb",8,0,13,-Math.PI*.5,2.0,0xbec7cf],
-  ["building-o.glb",0,0,0,Math.PI*.25,3.4,0xc4bda7],
+  ["building-o.glb",0,0,0,Math.PI*.25,3.4,0xd1a45b],
   ["building-n.glb",-8,0,13,Math.PI*.5,2.0,0xb4afa0],
   ["building-q.glb",8,0,-13,-Math.PI*.5,2.0,0xabb8b5],
   ["building-r.glb",-25,0,-32,0,1.9,0xc8b282],
-  ["building-s.glb",0,0,38,Math.PI,3.1,0xb8c1c7],
+  ["building-s.glb",0,0,38,Math.PI,3.1,0x6ca4c7],
   ["building-t.glb",25,0,32,Math.PI,1.9,0xaeb4a0],
   ["chimney-basic.glb",34,0,0,0,2.3,0xb6bdc3],
   ["chimney-large.glb",0,0,-27,0,3.8,0xc8ced0],
@@ -537,8 +537,8 @@ const READY_MAP_SPECS=[
 function tintReadyMaterial(material,tint){
   if(Array.isArray(material)) return material.map(m=>tintReadyMaterial(m,tint));
   const clone=material?.clone?material.clone():material;
-  // Keep the original Kenney palette/textures intact; only apply a very light optional tint.
-  if(clone?.color?.lerp && tint) clone.color.lerp(new THREE.Color(tint),.04);
+  // Preserve the source textures but give each building a clearly readable CS-like palette.
+  if(clone?.color?.lerp && tint) clone.color.lerp(new THREE.Color(tint),.18);
   return clone;
 }
 
@@ -611,7 +611,11 @@ async function addReadyIndustrialMap(scene,solids,colliders){
 
   const floor=new THREE.Mesh(
     new THREE.BoxGeometry(84*READY_MAP_SCALE,.24*READY_MAP_SCALE,84*READY_MAP_SCALE),
-    new THREE.MeshStandardMaterial({color:0x3d4549,roughness:.83,metalness:.06})
+    new THREE.MeshStandardMaterial({
+      color:0x66645a,
+      roughness:.82,
+      metalness:.045
+    })
   );
   floor.position.y=-.12*READY_MAP_SCALE;floor.receiveShadow=true;floor.name="ready_map_floor";group.add(floor);
 
@@ -651,8 +655,8 @@ async function addReadyIndustrialMap(scene,solids,colliders){
 
 export function createWorld(){
   const scene=new THREE.Scene();
-  scene.background=new THREE.Color(0x071018);
-  scene.fog=new THREE.Fog(0x071018,42,132);
+  scene.background=new THREE.Color(0x182531);
+  scene.fog=new THREE.Fog(0x182531,58,190);
 
   const sky=new THREE.Mesh(
     new THREE.SphereGeometry(115,32,20),
@@ -660,14 +664,14 @@ export function createWorld(){
   );
   scene.add(sky);
 
-  const hemi=new THREE.HemisphereLight(0xb8dcf3,0x20241e,1.55);
+  const hemi=new THREE.HemisphereLight(0xd6ecff,0x3b3a2d,1.8);
   scene.add(hemi);
-  const sun=new THREE.DirectionalLight(0xfff0d0,2.15);
+  const sun=new THREE.DirectionalLight(0xffe2b4,2.45);
   sun.position.set(-30,42,22);
   sun.castShadow=true;
   sun.shadow.mapSize.set(2048,2048);
-  sun.shadow.camera.left=-52;sun.shadow.camera.right=52;
-  sun.shadow.camera.top=52;sun.shadow.camera.bottom=-52;
+  sun.shadow.camera.left=-88;sun.shadow.camera.right=88;
+  sun.shadow.camera.top=88;sun.shadow.camera.bottom=-88;
   sun.shadow.camera.near=1;sun.shadow.camera.far=140;
   scene.add(sun);
 
@@ -677,10 +681,10 @@ export function createWorld(){
   const lightRig=new THREE.Group();
   lightRig.name="READY_MAP_LIGHT_RIG";
   scene.add(lightRig);
-  const lightColors=[0x8bc9ff,0xffb477,0x8fc7aa,0xcaa8ff];
+  const lightColors=[0x52a7ff,0xff9c52,0x5bd38d,0xb983ff,0x5fd8ff,0xff657a];
   for(let i=0;i<8;i++){
     const x=-28+(i%4)*18,z=-30+Math.floor(i/4)*60;
-    const p=new THREE.PointLight(lightColors[i%lightColors.length],1.15,18,2);
+    const p=new THREE.PointLight(lightColors[i%lightColors.length],1.45,24,2);
     p.position.set(x,6,z);lightRig.add(p);
     animations.push({type:"point",light:p,phase:i*.8});
   }
@@ -713,7 +717,7 @@ export function createWorld(){
         item.core.rotation.x+=dt*.58;
         item.light.intensity=2.0+Math.sin(now*.004)*.55;
       }else if(item.type==="point"){
-        item.light.intensity=1.0+Math.sin(now*.002+item.phase)*.22;
+        item.light.intensity=1.25+Math.sin(now*.002+item.phase)*.28;
       }
     }
   };
