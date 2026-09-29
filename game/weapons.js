@@ -1,15 +1,15 @@
 const THREE=window.THREE;
 
 const EXTERNALS={
-  rifle:"https://raw.githubusercontent.com/solcloud/Counter-Strike/25a292ff1b9d8ac876f6a96fdbbd6712bbbba803/www/resources/model/m4.glb",
-  pistol:"https://raw.githubusercontent.com/solcloud/Counter-Strike/25a292ff1b9d8ac876f6a96fdbbd6712bbbba803/www/resources/model/usp.glb",
-  sniper:"https://raw.githubusercontent.com/solcloud/Counter-Strike/25a292ff1b9d8ac876f6a96fdbbd6712bbbba803/www/resources/model/awp.glb"
+  rifle:"https://raw.githubusercontent.com/AetherRadar/operation-steel-tide/2084aafce812eb75169d68b25eba7290b6c57f70/assets/models/steel_tide_reloadable_weapons/mp5a5_reloadable.glb",
+  pistol:"https://raw.githubusercontent.com/AetherRadar/operation-steel-tide/2084aafce812eb75169d68b25eba7290b6c57f70/assets/models/steel_tide_reloadable_weapons/p226_reloadable.glb",
+  sniper:"https://raw.githubusercontent.com/AetherRadar/operation-steel-tide/2084aafce812eb75169d68b25eba7290b6c57f70/assets/models/steel_tide_reloadable_weapons/m24_reloadable.glb"
 };
 
 export const WEAPONS={
-  rifle:{name:"M4 CARBINE",mag:30,reserve:120,damage:25,rate:91,reload:1650,spread:.014,recoil:.034,automatic:true,adsFov:54},
-  pistol:{name:"USP SIDEARM",mag:12,reserve:60,damage:34,rate:230,reload:1100,spread:.009,recoil:.048,automatic:false,adsFov:49},
-  sniper:{name:"AWP SNIPER",mag:5,reserve:25,damage:100,rate:1100,reload:2250,spread:.001,recoil:.155,automatic:false,adsFov:27}
+  rifle:{name:"MP5A5",mag:30,reserve:120,damage:25,rate:91,reload:1550,spread:.010,recoil:.030,automatic:true,adsFov:54},
+  pistol:{name:"P226",mag:15,reserve:75,damage:34,rate:210,reload:1050,spread:.007,recoil:.040,automatic:false,adsFov:49},
+  sniper:{name:"M24",mag:5,reserve:25,damage:100,rate:1100,reload:2150,spread:.0009,recoil:.135,automatic:false,adsFov:27}
 };
 
 function mat(color,metal=.3,roughness=.5,emissive=0x000000){
@@ -109,6 +109,15 @@ function normalizeExternalWeapon(model,targetLength=1.65){
 }
 
 function addExternalMuzzle(model){
+  let socket=null;
+  model.traverse(node=>{
+    const key=(node.name||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+    if(!socket && /muzzlesocket|muzzle/.test(key)) socket=node;
+  });
+  if(socket){
+    model.userData.muzzle=socket;
+    return socket;
+  }
   model.updateMatrixWorld(true);
   const box=new THREE.Box3().setFromObject(model);
   const size=box.getSize(new THREE.Vector3());
@@ -117,6 +126,7 @@ function addExternalMuzzle(model){
   muzzle.name="runtime_muzzle";
   model.add(muzzle);
   model.userData.muzzle=muzzle;
+  return muzzle;
 }
 
 function prepareReloadParts(model){
@@ -124,7 +134,7 @@ function prepareReloadParts(model){
   model.traverse(node=>{
     const key=(node.name||"").toLowerCase().replace(/[^a-z0-9]/g,"");
     if(!key)return;
-    if(/magazine|mag|clip/.test(key) && !parts.some(p=>p.role==="mag")){
+    if(/^(magazine|magazinegeometry|mag)$/.test(key) && !parts.some(p=>p.role==="mag")){
       parts.push({role:"mag",mesh:node,basePosition:node.position.clone(),baseRotation:node.rotation.clone()});
     }else if(/bolt|slide|charginghandle|charging/.test(key) && !parts.some(p=>p.role==="bolt")){
       parts.push({role:"bolt",mesh:node,basePosition:node.position.clone(),baseRotation:node.rotation.clone()});
@@ -174,7 +184,8 @@ export function createWeaponSystem(camera){
         const loader=new THREE.GLTFLoader();
         loader.setCrossOrigin?.("anonymous");
         loader.load(EXTERNALS[id],gltf=>{
-          const model=normalizeExternalWeapon(gltf.scene);
+          const targetLength=id==="rifle"?1.55:id==="pistol"?.72:1.74;
+          const model=normalizeExternalWeapon(gltf.scene,targetLength);
           model.name="EXTERNAL_"+id.toUpperCase()+"_PUBLIC_DOMAIN";
           model.userData.reloadBasePosition=model.position.clone();
           model.userData.reloadBaseRotation=model.rotation.clone();
