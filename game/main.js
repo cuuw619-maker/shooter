@@ -1,12 +1,12 @@
 import {createWorld, createRenderer, createCamera} from "./world.js?v=20260929-8";
 import {createPlayer, respawn, getState, applyLook} from "./player.js";
 import {updatePlayer, isBlocked} from "./physics.js?v=20260929-3";
-import {createWeaponSystem} from "./weapons.js?v=20260929-4";
+import {createWeaponSystem} from "./weapons.js?v=20260929-5";
 import {Room} from "../network/room.js";
 import {createSync} from "../network/sync.js";
 import {createHud, setupFullscreen} from "../ui/hud.js?v=20260925-9";
 import {setupMobile} from "../ui/mobile.js?v=20260925-4";
-import {createEngine} from "../engine/core.js";
+import {createEngine} from "../engine/core.js?v=20260929-2";
 import {createAudioEngine} from "../engine/audio.js";
 import {createFx} from "../engine/fx.js";
 import {createPlayerVisual} from "./assets.js?v=20260929-2";
