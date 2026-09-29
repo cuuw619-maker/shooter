@@ -30,7 +30,6 @@ export const ASSET_CATALOG={
 
 const binaryCache=new Map();
 const binaryPromises=new Map();
-const parsePromises=new Map();
 
 function entryFor(idOrUrl){
   if(ASSET_CATALOG[idOrUrl])return {id:idOrUrl,...ASSET_CATALOG[idOrUrl]};
@@ -115,33 +114,19 @@ function basePath(url){
 export async function loadAssetGLTF(idOrUrl,onProgress){
   if(!THREE?.GLTFLoader)throw new Error("GLTFLoader is not available");
   const entry=entryFor(idOrUrl);
-  const cacheKey=entry.id;
-
-  if(parsePromises.has(cacheKey))return parsePromises.get(cacheKey);
-
-  const promise=(async()=>{
-    const loaded=await fetchWithFallback(entry,onProgress);
-    const loader=new THREE.GLTFLoader();
-    return await new Promise((resolve,reject)=>{
-      loader.parse(
-        loaded.buffer,
-        basePath(loaded.url),
-        gltf=>{
-          gltf.userData={...(gltf.userData||{}),assetUrl:loaded.url,usedLocalAsset:loaded.local};
-          resolve(gltf);
-        },
-        reject
-      );
-    });
-  })();
-
-  parsePromises.set(cacheKey,promise);
-  try{
-    return await promise;
-  }catch(error){
-    parsePromises.delete(cacheKey);
-    throw error;
-  }
+  const loaded=await fetchWithFallback(entry,onProgress);
+  const loader=new THREE.GLTFLoader();
+  return await new Promise((resolve,reject)=>{
+    loader.parse(
+      loaded.buffer,
+      basePath(loaded.url),
+      gltf=>{
+        gltf.userData={...(gltf.userData||{}),assetUrl:loaded.url,usedLocalAsset:loaded.local};
+        resolve(gltf);
+      },
+      reject
+    );
+  });
 }
 
 export async function preloadAsset(id,onProgress){
@@ -167,5 +152,4 @@ export function getAssetEntry(id){
 export function clearAssetCaches(){
   binaryCache.clear();
   binaryPromises.clear();
-  parsePromises.clear();
 }
