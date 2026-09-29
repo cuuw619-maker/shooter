@@ -284,6 +284,7 @@ function addModelCollider(solids,colliders,model,name){
   const proxy=new THREE.Mesh(new THREE.BoxGeometry(Math.max(.2,size.x),Math.max(.2,size.y),Math.max(.2,size.z)),material);
   proxy.position.copy(center);
   proxy.name="collision_"+name;
+  arena.add(proxy);
   solids.push(proxy);
   colliders.push({
     x:center.x,z:center.z,
@@ -884,7 +885,7 @@ export function createWorld(){
   sun.shadow.mapSize.set(2048,2048);
   sun.shadow.camera.left=-132;sun.shadow.camera.right=132;
   sun.shadow.camera.top=132;sun.shadow.camera.bottom=-132;
-  sun.shadow.camera.near=1;sun.shadow.camera.far=140;
+  sun.shadow.camera.near=1;sun.shadow.camera.far=320;
   scene.add(sun);
 
   const solids=[],colliders=[],animations=[];
@@ -966,5 +967,5 @@ export function createRenderer(){
 }
 
 export function createCamera(){
-  return new THREE.PerspectiveCamera(77,innerWidth/innerHeight,.05,220);
+  return new THREE.PerspectiveCamera(77,innerWidth/innerHeight,.05,360);
 }
