@@ -1,6 +1,6 @@
-import {createWorld, createRenderer, createCamera} from "./world.js?v=20260929-9";
+import {createWorld, createRenderer, createCamera} from "./world.js?v=20260929-10";
 import {createPlayer, respawn, getState, applyLook} from "./player.js";
-import {updatePlayer, isBlocked} from "./physics.js?v=20260929-4";
+import {updatePlayer, isBlocked} from "./physics.js?v=20260929-5";
 import {createWeaponSystem} from "./weapons.js?v=20260929-5";
 import {Room} from "../network/room.js";
 import {createSync} from "../network/sync.js";
@@ -84,9 +84,9 @@ function startGame(){
   world.environmentAssetPromise?.then(result=>{
     engine.collision.setColliders(obstacles);
     if(result?.loaded>=result?.total){
-      hud.loading("NIGHTLINE • 25/25 READY-MADE MAP ASSETS ✓");
+      hud.loading("NIGHTLINE • COLD WAR ARENA • READY ✓");
     }else{
-      hud.loading("NIGHTLINE • MAP "+(result?.loaded??0)+"/"+(result?.total??25));
+      hud.loading("NIGHTLINE • ARENA "+(result?.loaded??0)+"/"+(result?.total??0));
     }
   });
   audio=createAudioEngine();
