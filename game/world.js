@@ -1,3 +1,4 @@
+import {loadAssetGLTF} from "./asset-loader.js?v=20260929-1";
 const THREE = window.THREE;
 
 export const WORLD_SIZE = 360;
@@ -222,13 +223,7 @@ const EXTERNAL_ENV_ASSETS={
 
 function loadExternalProp(url){
   if(!THREE.GLTFLoader) return Promise.resolve(null);
-  return new Promise(resolve=>{
-    try{
-      const loader=new THREE.GLTFLoader();
-      loader.setCrossOrigin?.("anonymous");
-      loader.load(url,gltf=>resolve(gltf.scene),undefined,()=>resolve(null));
-    }catch(_){resolve(null);}
-  });
+  return loadAssetGLTF(url).then(gltf=>gltf.scene.clone(true)).catch(()=>null);
 }
 
 
@@ -520,7 +515,8 @@ async function addExternalEnvironmentProps(root){
   return Boolean(crateAsset||barrelAsset||robotAsset||scannerAsset||boxLargeAsset);
 }
 
-const ORBITAL_MAP_URL="https://raw.githubusercontent.com/AetherRadar/operation-steel-tide/2084aafce812eb75169d68b25eba7290b6c57f70/assets/models/orbital_complex/orbital_complex.glb";
+const ORBITAL_MAP_URL="./assets/maps/falltide_recovery_array.glb";
+const ORBITAL_MAP_REMOTE="https://raw.githubusercontent.com/AetherRadar/operation-steel-tide/2084aafce812eb75169d68b25eba7290b6c57f70/assets/models/orbital_complex/orbital_complex.glb";
 const ORBITAL_Y_SHIFT=15.8;
 
 function addOrbitalCollider(solids,colliders,{x,z,sx,sz,angle=0,name="orbital_collision"}){
@@ -585,7 +581,7 @@ function addAuthoredAssemblyColliders(root,solids,colliders){
 }
 
 async function addOrbitalComplexMap(scene,solids,colliders){
-  const group=await loadExternalProp(ORBITAL_MAP_URL);
+  const group=await loadAssetGLTF("map").then(gltf=>gltf.scene.clone(true)).catch(()=>loadExternalProp(ORBITAL_MAP_REMOTE));
   if(!group) return {loaded:0,failed:1,total:1,group:null,colliders:0};
 
   group.name="READY_FALLTIDE_RECOVERY_ARRAY";
