@@ -26,27 +26,6 @@ function addMuzzle(g,z){
   g.userData.muzzle=muzzle;
 }
 
-function addArmRig(root){
-  const skin=mat(0xb57b5d,0,.86);
-  const glove=mat(0x151a1f,.16,.7);
-  const sleeve=mat(0x30383e,.24,.72);
-  const armL=new THREE.Group();
-  armL.name="view_arm_l";armL.position.set(-.16,-.18,.12);root.add(armL);
-  const foreL=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,.44,12),skin);
-  foreL.rotation.z=.13;foreL.position.set(0,0,.12);foreL.castShadow=true;armL.add(foreL);
-  const elbowL=new THREE.Mesh(new THREE.SphereGeometry(.07,10,8),skin);
-  elbowL.position.set(0,.22,.12);elbowL.castShadow=true;armL.add(elbowL);
-  const wristL=new THREE.Mesh(new THREE.SphereGeometry(.07,10,8),skin);
-  wristL.position.set(0,-.22,.12);wristL.castShadow=true;armL.add(wristL);
-  const gloveL=new THREE.Mesh(new THREE.BoxGeometry(.12,.13,.18),glove);
-  gloveL.position.set(-.01,-.03,-.12);gloveL.rotation.x=-.25;armL.add(gloveL);
-
-  const armR=new THREE.Group();
-  armR.name="view_arm_r";armR.position.set(.16,-.18,.12);root.add(armR);
-  const foreR=foreL.clone();foreR.material=sleeve;foreR.rotation.z=-.13;armR.add(foreR);
-  const gloveR=gloveL.clone();gloveR.position.x=.01;gloveR.material=glove;armR.add(gloveR);
-  return {armL,armR};
-}
 
 function buildRifle(){
   const g=new THREE.Group();
@@ -65,7 +44,7 @@ function buildRifle(){
   lens.rotation.x=Math.PI/2;lens.position.set(0,.245,-.62);
   const bolt=new THREE.Mesh(new THREE.BoxGeometry(.07,.06,.24),dark);bolt.position.set(0,.10,.17);
   g.add(receiver,upper,handguard,barrel,muzzle,stock,grip,mag,opticBase,optic,lens,bolt);
-  g.userData.reloadParts=[{mesh:mag,from:mag.position.clone(),to:mag.position.clone().add(new THREE.Vector3(0,-.18,.02))}];
+  g.userData.reloadParts=[{role:"mag",mesh:mag,basePosition:mag.position.clone(),baseRotation:mag.rotation.clone()}];
   g.userData.bolt=bolt;g.userData.boltBase=bolt.position.clone();
   addMuzzle(g,-1.63);
   return g;
@@ -83,7 +62,7 @@ function buildPistol(){
   const sf=new THREE.Mesh(new THREE.BoxGeometry(.045,.05,.06),dark);sf.position.set(0,.18,-.31);
   const sr=sf.clone();sr.position.z=-.03;
   g.add(body,slide,barrel,muzzle,grip,mag,sf,sr);
-  g.userData.reloadParts=[{mesh:mag,from:mag.position.clone(),to:mag.position.clone().add(new THREE.Vector3(0,-.22,.03))}];
+  g.userData.reloadParts=[{role:"mag",mesh:mag,basePosition:mag.position.clone(),baseRotation:mag.rotation.clone()}];
   g.userData.slide=slide;g.userData.slideBase=slide.position.clone();
   addMuzzle(g,-.76);return g;
 }
@@ -102,44 +81,68 @@ function buildSniperFallback(){
   const mag=new THREE.Mesh(new THREE.BoxGeometry(.12,.22,.16),body);mag.position.set(0,-.17,-.02);
   const bolt=new THREE.Mesh(new THREE.BoxGeometry(.065,.055,.22),metal);bolt.position.set(.17,.08,.10);
   g.add(receiver,stock,grip,barrel,muzzle,scope,lens,mag,bolt);
-  g.userData.reloadParts=[{mesh:mag,from:mag.position.clone(),to:mag.position.clone().add(new THREE.Vector3(0,-.18,.04))}];
+  g.userData.reloadParts=[{role:"mag",mesh:mag,basePosition:mag.position.clone(),baseRotation:mag.rotation.clone()}];
   g.userData.bolt=bolt;g.userData.boltBase=bolt.position.clone();addMuzzle(g,-1.84);return g;
 }
 
-function normalizeExternalWeapon(model,targetLength=1.75){
+function normalizeExternalWeapon(model,targetLength=1.65){
   model.traverse(o=>{
-    if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}
+    if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.frustumCulled=true;}
   });
+  model.scale.setScalar(1);
+  model.rotation.set(0,0,0);
   model.updateMatrixWorld(true);
   const box=new THREE.Box3().setFromObject(model);
   const size=box.getSize(new THREE.Vector3());
   const longest=Math.max(size.x,size.y,size.z,.001);
-  const scale=targetLength/longest;
-  model.scale.setScalar(scale);
+  model.scale.setScalar(targetLength/longest);
+  const axis=size.x>=size.y&&size.x>=size.z?"x":size.y>=size.z?"y":"z";
+  // The Quaternius M4 is authored along +X; +PI/2 maps that barrel onto Three.js -Z camera-forward.
+  if(axis==="x") model.rotation.y=Math.PI/2;
+  else if(axis==="y") model.rotation.x=-Math.PI/2;
   model.updateMatrixWorld(true);
   const box2=new THREE.Box3().setFromObject(model);
   const center=box2.getCenter(new THREE.Vector3());
   model.position.sub(center);
-  const axis=size.x>=size.y&&size.x>=size.z?"x":size.y>=size.z?"y":"z";
-  if(axis==="x") model.rotation.y=-Math.PI/2;
-  if(axis==="y") model.rotation.x=-Math.PI/2;
+  model.position.y-=.01;
   return model;
 }
 
 function addExternalMuzzle(model){
+  model.updateMatrixWorld(true);
   const box=new THREE.Box3().setFromObject(model);
   const size=box.getSize(new THREE.Vector3());
   const muzzle=new THREE.Object3D();
-  muzzle.position.set(0,0,-Math.max(size.x,size.y,size.z)*.48);
+  muzzle.position.set(0,0,-Math.max(size.x,size.y,size.z)*.54);
+  muzzle.name="runtime_muzzle";
   model.add(muzzle);
   model.userData.muzzle=muzzle;
 }
 
+function prepareReloadParts(model){
+  const parts=[];
+  model.traverse(node=>{
+    const key=(node.name||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+    if(!key)return;
+    if(/magazine|mag|clip/.test(key) && !parts.some(p=>p.role==="mag")){
+      parts.push({role:"mag",mesh:node,basePosition:node.position.clone(),baseRotation:node.rotation.clone()});
+    }else if(/bolt|slide|charginghandle|charging/.test(key) && !parts.some(p=>p.role==="bolt")){
+      parts.push({role:"bolt",mesh:node,basePosition:node.position.clone(),baseRotation:node.rotation.clone()});
+    }else if(/trigger/.test(key) && !parts.some(p=>p.role==="trigger")){
+      parts.push({role:"trigger",mesh:node,basePosition:node.position.clone(),baseRotation:node.rotation.clone()});
+    }
+  });
+  model.userData.reloadParts=parts;
+  model.userData.reloadBasePosition=model.position.clone();
+  model.userData.reloadBaseRotation=model.rotation.clone();
+  return parts;
+}
+
+
 export function createWeaponSystem(camera){
   const root=new THREE.Group();
-  root.position.set(.42,-.34,-.72);
+  root.position.set(.34,-.30,-.88);
   camera.add(root);
-  const armRig=addArmRig(root);
   const state={};
   for(const id of Object.keys(WEAPONS)) state[id]={mag:WEAPONS[id].mag,reserve:WEAPONS[id].reserve};
 
@@ -176,9 +179,15 @@ export function createWeaponSystem(camera){
           model.userData.reloadBasePosition=model.position.clone();
           model.userData.reloadBaseRotation=model.rotation.clone();
           addExternalMuzzle(model);
+          prepareReloadParts(model);
           root.add(model);
           external[id]=model;
           externalReady[id]=true;
+          const fallback=models[id];
+          if(fallback){
+            fallback.visible=false;
+            root.remove(fallback);
+          }
           switchVisible();
           resolve(true);
         },undefined,()=>resolve(false));
@@ -209,78 +218,69 @@ export function createWeaponSystem(camera){
   function applyReloadAnimation(model,now){
     const cfg=WEAPONS[current];
     const p=Math.max(0,Math.min(1,1-Math.max(0,reloadTimer-now)/cfg.reload));
-    const part=model.userData.reloadParts?.[0];
-    const basePos=model.userData.reloadBasePosition||new THREE.Vector3();
-    const baseRot=model.userData.reloadBaseRotation||new THREE.Euler();
+    const basePos=model.userData.reloadBasePosition||model.position.clone();
+    const baseRot=model.userData.reloadBaseRotation||model.rotation.clone();
+    const parts=model.userData.reloadParts||[];
 
-    let drop=0,tilt=0,slide=0;
-    if(p<.18){
-      const t=p/.18;
-      drop=t;
-      tilt=t;
-    }else if(p<.54){
-      const t=(p-.18)/.36;
-      drop=1-t*.22;
-      tilt=1-t*.35;
-    }else if(p<.78){
-      const t=(p-.54)/.24;
-      drop=.78+t*.22;
-      tilt=.65-t*.55;
-      slide=Math.sin(t*Math.PI);
-    }else{
-      const t=(p-.78)/.22;
-      drop=1-t;
-      tilt=.10*(1-t);
-      slide=Math.sin(t*Math.PI*.5);
+    const mag=parts.find(p=>p.role==="mag");
+    const bolt=parts.find(p=>p.role==="bolt");
+    const trigger=parts.find(p=>p.role==="trigger");
+
+    const easeIn=t=>t*t*(3-2*t);
+    const magOut=easeIn(Math.min(1,p/.24));
+    const magIn=easeIn(Math.max(0,Math.min(1,(p-.52)/.30)));
+    const chamber=(p<.70)?Math.sin(Math.min(1,p/.70)*Math.PI):Math.sin(Math.max(0,(p-.70)/.30)*Math.PI);
+
+    model.position.copy(basePos);
+    model.rotation.copy(baseRot);
+
+    // Lower and cant the weapon so the reload action reads as a physical manipulation.
+    const inspect=Math.sin(Math.PI*Math.min(1,p/.30));
+    model.position.y-=inspect*.11;
+    model.position.x+=inspect*.025;
+    model.rotation.x+=inspect*.24;
+    model.rotation.z+=inspect*.10;
+
+    if(mag){
+      mag.mesh.position.copy(mag.basePosition);
+      mag.mesh.rotation.copy(mag.baseRotation);
+      if(p<.30){
+        mag.mesh.position.y-=magOut*.20;
+        mag.mesh.position.z+=magOut*.045;
+        mag.mesh.rotation.x-=magOut*.18;
+      }else if(p<.55){
+        mag.mesh.position.y-=.20;
+        mag.mesh.position.z+=.045;
+      }else{
+        mag.mesh.position.y-=.20*(1-magIn);
+        mag.mesh.position.z+=.045*(1-magIn);
+        mag.mesh.rotation.x-=.18*(1-magIn);
+      }
+    }else if(model.userData.reloadParts?.length===0){
+      model.position.y-=Math.sin(Math.PI*p)*.045;
     }
 
-    const easedDrop=drop*drop*(3-2*drop);
-    if(part){
-      part.mesh.position.copy(part.from);
-      part.mesh.position.y-=easedDrop*.24;
-      part.mesh.position.z+=easedDrop*.03;
-      part.mesh.rotation.x=-easedDrop*.48;
-    }else{
-      model.position.copy(basePos);
-      model.position.y-=easedDrop*.08;
-      model.position.z+=easedDrop*.035;
-      model.rotation.copy(baseRot);
-      model.rotation.x-=tilt*.16;
-      model.rotation.z+=Math.sin(p*Math.PI)*.12;
-      model.rotation.y+=easedDrop*.08;
+    if(bolt){
+      bolt.mesh.position.copy(bolt.basePosition);
+      bolt.mesh.rotation.copy(bolt.baseRotation);
+      bolt.mesh.position.z+=chamber*.18;
+      bolt.mesh.rotation.y+=chamber*.20;
     }
 
-    if(model.userData.slide&&model.userData.slideBase){
-      model.userData.slide.position.copy(model.userData.slideBase);
-      model.userData.slide.position.z+=slide*.16;
+    if(trigger){
+      trigger.mesh.position.copy(trigger.basePosition);
+      trigger.mesh.rotation.copy(trigger.baseRotation);
+      trigger.mesh.rotation.x+=Math.sin(Math.PI*p)*.12;
     }
-    if(model.userData.bolt&&model.userData.boltBase){
-      model.userData.bolt.position.copy(model.userData.boltBase);
-      model.userData.bolt.position.z+=slide*.22;
-      model.userData.bolt.rotation.y=slide*.28;
-    }
-
-    const handPhase=Math.sin(Math.min(1,p/.62)*Math.PI);
-    armRig.armL.rotation.x=(aiming?-.08:0)-handPhase*.28;
-    armRig.armL.rotation.z=handPhase*.20;
-    armRig.armR.rotation.x=(aiming?-.08:0)-handPhase*.46;
-    armRig.armR.rotation.z=-handPhase*.16;
-    armRig.armL.position.y=-.18-handPhase*.035;
-    armRig.armR.position.y=-.18-handPhase*.02;
   }
 
   function resetReloadPose(model){
-    const part=model.userData.reloadParts?.[0];
-    if(part){part.mesh.position.copy(part.from);part.mesh.rotation.set(0,0,0);}
-    if(model.userData.slide&&model.userData.slideBase)model.userData.slide.position.copy(model.userData.slideBase);
-    if(model.userData.bolt&&model.userData.boltBase){
-      model.userData.bolt.position.copy(model.userData.boltBase);
-      model.userData.bolt.rotation.set(0,0,0);
+    for(const part of model.userData.reloadParts||[]){
+      part.mesh.position.copy(part.basePosition);
+      part.mesh.rotation.copy(part.baseRotation);
     }
     if(model.userData.reloadBasePosition)model.position.copy(model.userData.reloadBasePosition);
     if(model.userData.reloadBaseRotation)model.rotation.copy(model.userData.reloadBaseRotation);
-    armRig.armL.position.y=-.18;armRig.armL.rotation.set(aiming?-.08:0,0,0);
-    armRig.armR.position.y=-.18;armRig.armR.rotation.set(aiming?-.08:0,0,0);
   }
 
   function tick(now=performance.now(),events={}){
@@ -291,10 +291,6 @@ export function createWeaponSystem(camera){
     }
     if(boltTimer&&now>=boltTimer){boltTimer=0;events.onBolt?.();}
     recoil*=.82;equipBlend=Math.min(1,equipBlend+.08);
-    if(!reloading){
-      armRig.armL.position.y+=(-.18-armRig.armL.position.y)*.18;
-      armRig.armR.position.y+=(-.18-armRig.armR.position.y)*.18;
-    }
     const ease=1-(1-equipBlend)*(1-equipBlend);
     const idle=Math.sin(now*.0042)*.003,sx=Math.sin(now*.0026)*.004,sy=Math.cos(now*.0031)*.003,run=Math.abs(Math.cos(now*.008))*.004;
     const targetX=aiming?-.08:.42,targetY=aiming?-.29:-.34,targetZ=aiming?-.90:-.72;
@@ -302,8 +298,6 @@ export function createWeaponSystem(camera){
     root.rotation.x=recoil*.65+Math.sin(now*.002)*.004;
     root.rotation.y=sx*.7;
     root.rotation.z=Math.sin(now*.0018)*.004;
-    armRig.armL.rotation.x=aiming?-.08:0;
-    armRig.armR.rotation.x=aiming?-.08:0;
     if(reloading)applyReloadAnimation(activeModel(),now);
   }
 
@@ -317,23 +311,32 @@ export function createWeaponSystem(camera){
       return false;
     }
 
-    lastShot=now;ammo.mag--;recoil=cfg.recoil;
-    const spreadMultiplier=aiming?(current==="sniper"?.16:.45):1;
-    const spreadX=(Math.random()-.5)*cfg.spread*spreadMultiplier;
-    const spreadY=(Math.random()-.5)*cfg.spread*spreadMultiplier;
+    lastShot=now;
+    ammo.mag--;
+    recoil=cfg.recoil;
+
+    // Generate spread around the crosshair, then launch the actual projectile line from the weapon muzzle.
+    const radius=Math.sqrt(Math.random())*(aiming?(current==="sniper"?.16:.34):1);
+    const theta=Math.random()*Math.PI*2;
+    const spreadX=Math.cos(theta)*cfg.spread*radius;
+    const spreadY=Math.sin(theta)*cfg.spread*radius;
     raycaster.setFromCamera({x:spreadX,y:spreadY},camera);
 
-    const from=camera.getWorldPosition(new THREE.Vector3());
-    const direction=raycaster.ray.direction.clone().normalize();
+    const muzzle=activeModel().userData.muzzle;
+    const muzzleWorld=muzzle?muzzle.getWorldPosition(new THREE.Vector3()):camera.getWorldPosition(new THREE.Vector3());
+    const target=camera.getWorldPosition(new THREE.Vector3()).add(raycaster.ray.direction.clone().multiplyScalar(110));
+    const direction=target.clone().sub(muzzleWorld).normalize();
+
+    raycaster.ray.origin.copy(muzzleWorld);
+    raycaster.ray.direction.copy(direction);
+
     const targets=remoteMesh?.userData?.hitTargets||remoteMesh?.children||[];
     const playerHits=targets.length?raycaster.intersectObjects(targets,true):[];
     const wallHits=obstacles.length?raycaster.intersectObjects(obstacles,true):[];
     const playerHit=playerHits[0]||null,wallHit=wallHits[0]||null;
     const playerDistance=playerHit?.distance??Infinity,wallDistance=wallHit?.distance??Infinity;
     const hitPlayer=playerDistance<wallDistance;
-    const impact=hitPlayer?playerHit.point.clone():wallHit?wallHit.point.clone():from.clone().add(direction.clone().multiplyScalar(110));
-    const muzzle=activeModel().userData.muzzle;
-    const muzzleWorld=muzzle?muzzle.getWorldPosition(new THREE.Vector3()):from.clone();
+    const impact=hitPlayer?playerHit.point.clone():wallHit?wallHit.point.clone():muzzleWorld.clone().add(direction.clone().multiplyScalar(110));
 
     onShot?.({weapon:current,config:cfg,from:muzzleWorld,to:impact,hit:hitPlayer,impact,direction,aiming});
     if(hitPlayer){
