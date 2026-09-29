@@ -214,7 +214,10 @@ function addPipe(root,x,y,z,sx,sy,sz,rotation,materials) {
 
 const EXTERNAL_ENV_ASSETS={
   crates:"https://raw.githubusercontent.com/Apomera/AlloFlow/42188dba9a920270b4a88c039bee8d7f2933e996/assets/glb/crates_stacked.glb",
-  barrel:"https://raw.githubusercontent.com/Apomera/AlloFlow/42188dba9a920270b4a88c039bee8d7f2933e996/assets/glb/barrel_decorated.glb"
+  barrel:"https://raw.githubusercontent.com/Apomera/AlloFlow/42188dba9a920270b4a88c039bee8d7f2933e996/assets/glb/barrel_decorated.glb",
+  robot:"https://raw.githubusercontent.com/FrederickPi1969/3d-learn-digital-twins/756ec21e8b910532f311ea8b5726dc3bd621d491/warehouse-sorting-digital-twin/public/assets/kenney/robot-arm-a.glb",
+  scanner:"https://raw.githubusercontent.com/FrederickPi1969/3d-learn-digital-twins/756ec21e8b910532f311ea8b5726dc3bd621d491/warehouse-sorting-digital-twin/public/assets/kenney/scanner-high.glb",
+  boxLarge:"https://raw.githubusercontent.com/FrederickPi1969/3d-learn-digital-twins/756ec21e8b910532f311ea8b5726dc3bd621d491/warehouse-sorting-digital-twin/public/assets/kenney/box-large.glb"
 };
 
 function loadExternalProp(url){
@@ -244,9 +247,12 @@ function normalizeProp(model,targetHeight){
 }
 
 async function addExternalEnvironmentProps(root){
-  const [crateAsset,barrelAsset]=await Promise.all([
+  const [crateAsset,barrelAsset,robotAsset,scannerAsset,boxLargeAsset]=await Promise.all([
     loadExternalProp(EXTERNAL_ENV_ASSETS.crates),
-    loadExternalProp(EXTERNAL_ENV_ASSETS.barrel)
+    loadExternalProp(EXTERNAL_ENV_ASSETS.barrel),
+    loadExternalProp(EXTERNAL_ENV_ASSETS.robot),
+    loadExternalProp(EXTERNAL_ENV_ASSETS.scanner),
+    loadExternalProp(EXTERNAL_ENV_ASSETS.boxLarge)
   ]);
 
   if(crateAsset){
@@ -271,7 +277,34 @@ async function addExternalEnvironmentProps(root){
     }
   }
 
-  return Boolean(crateAsset||barrelAsset);
+  if(robotAsset){
+    const model=normalizeProp(robotAsset,1.7);
+    for(const [x,z,r] of [[-20,-15,0],[-24,-15,Math.PI]]){
+      const copy=model.clone(true);
+      copy.position.set(x,.05,z);copy.rotation.y=r;copy.name="CC0_KENNEY_ROBOT_ARM";root.add(copy);
+    }
+  }
+
+  if(scannerAsset){
+    const model=normalizeProp(scannerAsset,2.0);
+    for(const [x,z] of [[17,4],[27,4]]){
+      const copy=model.clone(true);
+      copy.position.set(x,.05,z);copy.name="CC0_KENNEY_SCANNER";root.add(copy);
+    }
+  }
+
+  if(boxLargeAsset){
+    const model=normalizeProp(boxLargeAsset,.95);
+    for(const [x,z] of [[-29,13],[-31,10],[29,-13]]){
+      const copy=model.clone(true);
+      copy.position.set(x,.02,z);
+      copy.rotation.y=(x+z)*.04;
+      copy.name="CC0_KENNEY_FACTORY_BOX";
+      root.add(copy);
+    }
+  }
+
+  return Boolean(crateAsset||barrelAsset||robotAsset||scannerAsset||boxLargeAsset);
 }
 
 function makeObjective(root,animations,materials) {
