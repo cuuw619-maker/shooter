@@ -1,7 +1,7 @@
 import {createWorld, createRenderer, createCamera} from "./world.js?v=20260929-4";
 import {createPlayer, respawn, getState, applyLook} from "./player.js";
 import {updatePlayer, isBlocked} from "./physics.js?v=20260929-1";
-import {createWeaponSystem} from "./weapons.js?v=20260929-1";
+import {createWeaponSystem} from "./weapons.js?v=20260929-2";
 import {Room} from "../network/room.js";
 import {createSync} from "../network/sync.js";
 import {createHud, setupFullscreen} from "../ui/hud.js?v=20260925-9";
