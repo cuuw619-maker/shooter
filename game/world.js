@@ -280,10 +280,10 @@ function buildMap() {
   })};
 
   addBox(root,[],[],{x:0,y:-.16,z:0,sx:82,sy:.32,sz:82,material:ground,solid:false,name:"floor"});
-  addBox(root,colliders,colliders,{x:0,y:2.5,z:-41,sx:82,sy:5,sz:.7,material:wall,name:"boundary_n"});
-  addBox(root,colliders,colliders,{x:0,y:2.5,z:41,sx:82,sy:5,sz:.7,material:wall,name:"boundary_s"});
-  addBox(root,colliders,colliders,{x:-41,y:2.5,z:0,sx:.7,sy:5,sz:82,material:wall,name:"boundary_w"});
-  addBox(root,colliders,colliders,{x:41,y:2.5,z:0,sx:.7,sy:5,sz:82,material:wall,name:"boundary_e"});
+  addBox(root,[],colliders,{x:0,y:2.5,z:-41,sx:82,sy:5,sz:.7,material:wall,name:"boundary_n"});
+  addBox(root,[],colliders,{x:0,y:2.5,z:41,sx:82,sy:5,sz:.7,material:wall,name:"boundary_s"});
+  addBox(root,[],colliders,{x:-41,y:2.5,z:0,sx:.7,sy:5,sz:82,material:wall,name:"boundary_w"});
+  addBox(root,[],colliders,{x:41,y:2.5,z:0,sx:.7,sy:5,sz:82,material:wall,name:"boundary_e"});
 
   addBuilding(root,solids,colliders,-23,-23,0,materials,2);
   addBuilding(root,solids,colliders,23,23,Math.PI,materials,2);
