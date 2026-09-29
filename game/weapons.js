@@ -136,6 +136,9 @@ function prepareReloadParts(model){
     if(!key)return;
     if(/^(magazine|magazinegeometry|mag)$/.test(key) && !parts.some(p=>p.role==="mag")){
       parts.push({role:"mag",mesh:node,basePosition:node.position.clone(),baseRotation:node.rotation.clone()});
+    }else if(/^sparemagazine|sparemagazinegeometry$/.test(key) && !parts.some(p=>p.role==="spare")){
+      parts.push({role:"spare",mesh:node,basePosition:node.position.clone(),baseRotation:node.rotation.clone()});
+      node.visible=false;
     }else if(/bolt|slide|charginghandle|charging/.test(key) && !parts.some(p=>p.role==="bolt")){
       parts.push({role:"bolt",mesh:node,basePosition:node.position.clone(),baseRotation:node.rotation.clone()});
     }else if(/trigger/.test(key) && !parts.some(p=>p.role==="trigger")){
@@ -186,7 +189,7 @@ export function createWeaponSystem(camera){
         loader.load(EXTERNALS[id],gltf=>{
           const targetLength=id==="rifle"?1.55:id==="pistol"?.72:1.74;
           const model=normalizeExternalWeapon(gltf.scene,targetLength);
-          model.name="EXTERNAL_"+id.toUpperCase()+"_PUBLIC_DOMAIN";
+          model.name="EXTERNAL_"+id.toUpperCase()+"_READY_RELOADABLE";
           model.userData.reloadBasePosition=model.position.clone();
           model.userData.reloadBaseRotation=model.rotation.clone();
           addExternalMuzzle(model);
@@ -236,6 +239,7 @@ export function createWeaponSystem(camera){
     const mag=parts.find(p=>p.role==="mag");
     const bolt=parts.find(p=>p.role==="bolt");
     const trigger=parts.find(p=>p.role==="trigger");
+    const spare=parts.find(p=>p.role==="spare");
 
     const easeIn=t=>t*t*(3-2*t);
     const magOut=easeIn(Math.min(1,p/.24));
@@ -271,6 +275,27 @@ export function createWeaponSystem(camera){
       model.position.y-=Math.sin(Math.PI*p)*.045;
     }
 
+    if(spare&&mag){
+      spare.mesh.position.copy(spare.basePosition);
+      spare.mesh.rotation.copy(spare.baseRotation);
+      if(p>=.28&&p<.76){
+        spare.mesh.visible=true;
+        const take=easeIn(Math.min(1,(p-.28)/.18));
+        const insert=easeIn(Math.max(0,Math.min(1,(p-.56)/.20)));
+        const target=mag.basePosition.clone().add(new THREE.Vector3(0,-.02,.015));
+        if(p<.50){
+          spare.mesh.position.lerpVectors(spare.basePosition,target,take);
+          spare.mesh.rotation.x-=take*.35;
+        }else{
+          spare.mesh.position.copy(target);
+          spare.mesh.position.y-=.18*insert;
+          spare.mesh.rotation.x-=.35*(1-insert);
+        }
+      }else{
+        spare.mesh.visible=false;
+      }
+    }
+
     if(bolt){
       bolt.mesh.position.copy(bolt.basePosition);
       bolt.mesh.rotation.copy(bolt.baseRotation);
@@ -289,6 +314,7 @@ export function createWeaponSystem(camera){
     for(const part of model.userData.reloadParts||[]){
       part.mesh.position.copy(part.basePosition);
       part.mesh.rotation.copy(part.baseRotation);
+      if(part.role==="spare")part.mesh.visible=false;
     }
     if(model.userData.reloadBasePosition)model.position.copy(model.userData.reloadBasePosition);
     if(model.userData.reloadBaseRotation)model.rotation.copy(model.userData.reloadBaseRotation);
