@@ -1,6 +1,6 @@
 import {createWorld, createRenderer, createCamera} from "./world.js?v=20260929-6";
 import {createPlayer, respawn, getState, applyLook} from "./player.js";
-import {updatePlayer, isBlocked} from "./physics.js?v=20260929-1";
+import {updatePlayer, isBlocked} from "./physics.js?v=20260929-2";
 import {createWeaponSystem} from "./weapons.js?v=20260929-2";
 import {Room} from "../network/room.js";
 import {createSync} from "../network/sync.js";
@@ -222,10 +222,9 @@ function setupInput(){
   };
   input.jump=()=>{
     audio?.unlock();
-    if(player?.userData.grounded){
-      player.userData.jumpQueued=true;
-      audio?.jump();
-    }
+    if(!player)return;
+    player.userData.jumpQueued=true;
+    if(player.userData.grounded||player.userData.coyoteTimer>0) audio?.jump();
   };
 
   addEventListener("resize",()=>{
