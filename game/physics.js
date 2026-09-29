@@ -1,8 +1,8 @@
 const BASE_Y = 1.6;
 const GRAVITY = 22;
 const JUMP_SPEED = 8.2;
-const WALK_SPEED = 7.0;
-const SPRINT_SPEED = 9.2;
+const WALK_SPEED = 7.8;
+const SPRINT_SPEED = 10.6;
 const ACCELERATION = 55;
 const BRAKING = 78;
 
@@ -82,8 +82,8 @@ export function updatePlayer(player, state, input, dt, collisionWorld) {
     player.position.z += dz;
   }
 
-  player.position.x=Math.max(-41.0,Math.min(41.0,player.position.x));
-  player.position.z=Math.max(-41.0,Math.min(41.0,player.position.z));
+  player.position.x=Math.max(-56.0,Math.min(56.0,player.position.x));
+  player.position.z=Math.max(-56.0,Math.min(56.0,player.position.z));
 
   data.verticalVelocity -= GRAVITY * dt;
   player.position.y += data.verticalVelocity * dt;
