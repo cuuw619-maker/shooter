@@ -505,6 +505,7 @@ function buildMap() {
 }
 
 const READY_MAP_BASE="https://raw.githubusercontent.com/RAPHCVR/Krunker/0ce0423004c117daac9b2b0a6d94d90ff5ffde5a/apps/client/public/assets/maps/kenney-industrial/";
+const READY_MAP_SCALE=1.35;
 const READY_MAP_SPECS=[
   ["building-a.glb",-31,0,-24,Math.PI*.5,2.2,0xc4b79a],
   ["building-b.glb",31,0,24,-Math.PI*.5,2.2,0xaebec0],
@@ -536,13 +537,16 @@ const READY_MAP_SPECS=[
 function tintReadyMaterial(material,tint){
   if(Array.isArray(material)) return material.map(m=>tintReadyMaterial(m,tint));
   const clone=material?.clone?material.clone():material;
-  if(clone?.color?.lerp) clone.color.lerp(new THREE.Color(tint),.62);
+  // Keep the original Kenney palette/textures intact; only apply a very light optional tint.
+  if(clone?.color?.lerp && tint) clone.color.lerp(new THREE.Color(tint),.04);
   return clone;
 }
 
 function addReadyCollider(solids,colliders,{x,y,z,sx,sy,sz,angle=0,name="ready_collision"}){
   const material=new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false});
   const mesh=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),material);
+  x*=READY_MAP_SCALE;y*=READY_MAP_SCALE;z*=READY_MAP_SCALE;
+  sx*=READY_MAP_SCALE;sy*=READY_MAP_SCALE;sz*=READY_MAP_SCALE;
   mesh.position.set(x,y,z);mesh.rotation.y=angle;mesh.name=name;
   mesh.updateMatrixWorld(true);
   solids.push(mesh);
@@ -606,10 +610,10 @@ async function addReadyIndustrialMap(scene,solids,colliders){
   scene.add(group);
 
   const floor=new THREE.Mesh(
-    new THREE.BoxGeometry(84,.24,84),
-    new THREE.MeshStandardMaterial({color:0x2e3438,roughness:.9,metalness:.05})
+    new THREE.BoxGeometry(84*READY_MAP_SCALE,.24*READY_MAP_SCALE,84*READY_MAP_SCALE),
+    new THREE.MeshStandardMaterial({color:0x3d4549,roughness:.83,metalness:.06})
   );
-  floor.position.y=-.12;floor.receiveShadow=true;floor.name="ready_map_floor";group.add(floor);
+  floor.position.y=-.12*READY_MAP_SCALE;floor.receiveShadow=true;floor.name="ready_map_floor";group.add(floor);
 
   addReadyMapColliders(solids,colliders);
 
@@ -624,9 +628,9 @@ async function addReadyIndustrialMap(scene,solids,colliders){
         if(!source){failed++;continue;}
         const object=source.clone(true);
         object.name="READY_"+file.replace(/\\.glb$/i,"").toUpperCase();
-        object.position.set(x,y,z);
+        object.position.set(x*READY_MAP_SCALE,y*READY_MAP_SCALE,z*READY_MAP_SCALE);
         object.rotation.y=rotation;
-        object.scale.setScalar(scale);
+        object.scale.setScalar(scale*READY_MAP_SCALE);
         object.traverse(o=>{
           if(!o.isMesh)return;
           o.castShadow=true;o.receiveShadow=true;o.frustumCulled=true;
@@ -656,9 +660,9 @@ export function createWorld(){
   );
   scene.add(sky);
 
-  const hemi=new THREE.HemisphereLight(0x9ec7e6,0x0c0d0e,1.32);
+  const hemi=new THREE.HemisphereLight(0xb8dcf3,0x20241e,1.55);
   scene.add(hemi);
-  const sun=new THREE.DirectionalLight(0xc6d7e6,1.85);
+  const sun=new THREE.DirectionalLight(0xfff0d0,2.15);
   sun.position.set(-30,42,22);
   sun.castShadow=true;
   sun.shadow.mapSize.set(2048,2048);
@@ -715,10 +719,10 @@ export function createWorld(){
   };
 
   const spawnPoints=[
-    {host:[-39,-34],guest:[39,34]},
-    {host:[-39,34],guest:[39,-34]},
-    {host:[-36,-20],guest:[36,20]},
-    {host:[-36,20],guest:[36,-20]}
+    {host:[-39*READY_MAP_SCALE,-34*READY_MAP_SCALE],guest:[39*READY_MAP_SCALE,34*READY_MAP_SCALE]},
+    {host:[-39*READY_MAP_SCALE,34*READY_MAP_SCALE],guest:[39*READY_MAP_SCALE,-34*READY_MAP_SCALE]},
+    {host:[-36*READY_MAP_SCALE,-20*READY_MAP_SCALE],guest:[36*READY_MAP_SCALE,20*READY_MAP_SCALE]},
+    {host:[-36*READY_MAP_SCALE,20*READY_MAP_SCALE],guest:[36*READY_MAP_SCALE,-20*READY_MAP_SCALE]}
   ];
   return {
     scene,
