@@ -1,6 +1,6 @@
 const THREE = window.THREE;
 
-export const WORLD_SIZE = 240;
+export const WORLD_SIZE = 360;
 
 function canvasTexture(draw, repeatX=8, repeatY=8) {
   const canvas = document.createElement("canvas");
@@ -520,6 +520,94 @@ async function addExternalEnvironmentProps(root){
   return Boolean(crateAsset||barrelAsset||robotAsset||scannerAsset||boxLargeAsset);
 }
 
+const ORBITAL_MAP_URL="https://raw.githubusercontent.com/AetherRadar/operation-steel-tide/2084aafce812eb75169d68b25eba7290b6c57f70/assets/models/orbital_complex/orbital_complex.glb";
+const ORBITAL_Y_SHIFT=15.8;
+
+function addOrbitalCollider(solids,colliders,{x,z,sx,sz,angle=0,name="orbital_collision"}){
+  const material=new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false});
+  const mesh=new THREE.Mesh(new THREE.BoxGeometry(Math.max(.2,sx),60,Math.max(.2,sz)),material);
+  mesh.position.set(x,0,z);
+  mesh.rotation.y=angle;
+  mesh.name=name;
+  mesh.updateMatrixWorld(true);
+  solids.push(mesh);
+  colliders.push({x,z,halfX:Math.abs(sx)*.5,halfZ:Math.abs(sz)*.5,angle,minY:-30,maxY:30,source:mesh});
+}
+
+function addOrbitalStaticColliders(solids,colliders){
+  const boxes=[
+    [-170,-60,1,320,0,"orbital_boundary_w"],
+    [170,-60,1,320,0,"orbital_boundary_e"],
+    [0,-220,340,1,0,"orbital_boundary_n"],
+    [0,100,340,1,0,"orbital_boundary_s"],
+    [-27,-34,7,40,0,"orbital_reactor_west"],
+    [27,-34,7,40,0,"orbital_reactor_east"],
+    [-16,77,22,8,0,"orbital_intake_west"],
+    [16,77,22,8,0,"orbital_intake_east"],
+    [-20.5,-194,13,8,0,"orbital_tidegate_west"],
+    [20.5,-194,13,8,0,"orbital_tidegate_east"]
+  ];
+  for(const [x,z,sx,sz,angle,name] of boxes){
+    addOrbitalCollider(solids,colliders,{x,z,sx,sz,angle,name});
+  }
+}
+
+function addAuthoredAssemblyColliders(root,solids,colliders){
+  root.updateMatrixWorld(true);
+  const candidates=[];
+  root.traverse(node=>{
+    if(node===root || !(node.userData?.dcc_assembly || node.userData?.collision_role)) return;
+    const box=new THREE.Box3().setFromObject(node);
+    if(!Number.isFinite(box.min.x)||!Number.isFinite(box.max.x)) return;
+    const size=box.getSize(new THREE.Vector3());
+    const maxPlanar=Math.max(size.x,size.z);
+    const minPlanar=Math.min(size.x,size.z);
+    if(size.y<1.8||minPlanar<1.2||maxPlanar>70) return;
+    if(/dish|stormglass|array|roof|ceiling/i.test(node.name||"")) return;
+    candidates.push({node,box,size});
+  });
+
+  for(const item of candidates){
+    const center=item.box.getCenter(new THREE.Vector3());
+    const size=item.size;
+    const material=new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false});
+    const proxy=new THREE.Mesh(new THREE.BoxGeometry(Math.max(.3,size.x),60,Math.max(.3,size.z)),material);
+    proxy.position.set(center.x,0,center.z);
+    proxy.name="orbital_authored_collision_"+(item.node.name||"assembly");
+    solids.push(proxy);
+    colliders.push({
+      x:center.x,z:center.z,
+      halfX:Math.max(.15,size.x*.5),halfZ:Math.max(.15,size.z*.5),
+      angle:0,minY:-30,maxY:30,source:proxy
+    });
+  }
+  return candidates.length;
+}
+
+async function addOrbitalComplexMap(scene,solids,colliders){
+  const group=await loadExternalProp(ORBITAL_MAP_URL);
+  if(!group) return {loaded:0,failed:1,total:1,group:null,colliders:0};
+
+  group.name="READY_FALLTIDE_RECOVERY_ARRAY";
+  group.position.y=ORBITAL_Y_SHIFT;
+  group.traverse(node=>{
+    if(!node.isMesh) return;
+    node.castShadow=true;
+    node.receiveShadow=true;
+    node.frustumCulled=true;
+    const materials=Array.isArray(node.material)?node.material:[node.material];
+    for(const material of materials){
+      if(material?.map) material.map.anisotropy=4;
+    }
+  });
+  group.updateMatrixWorld(true);
+  scene.add(group);
+
+  addOrbitalStaticColliders(solids,colliders);
+  const authoredCount=addAuthoredAssemblyColliders(group,solids,colliders);
+  group.userData.assetStatus={loaded:1,failed:0,total:1,authoredCollisionAssemblies:authoredCount};
+  return {loaded:1,failed:0,total:1,group,colliders:authoredCount};
+}
 function makeObjective(root,animations,materials) {
   const hub=new THREE.Group();
   hub.position.set(0,0,25);
@@ -868,60 +956,42 @@ async function addReadyIndustrialMap(scene,solids,colliders){
 
 export function createWorld(){
   const scene=new THREE.Scene();
-  scene.background=new THREE.Color(0x7f9bb0);
-  scene.fog=new THREE.Fog(0x7f9bb0,95,300);
+  scene.background=new THREE.Color(0x0a141a);
+  scene.fog=new THREE.Fog(0x0a141a,120,380);
 
   const sky=new THREE.Mesh(
-    new THREE.SphereGeometry(115,32,20),
+    new THREE.SphereGeometry(260,32,20),
     new THREE.MeshBasicMaterial({color:0x0d1822,side:THREE.BackSide,depthWrite:false,fog:false})
   );
   scene.add(sky);
 
-  const hemi=new THREE.HemisphereLight(0xd6ecff,0x3b3a2d,1.8);
+  const hemi=new THREE.HemisphereLight(0x9fc9e4,0x111820,1.55);
   scene.add(hemi);
-  const sun=new THREE.DirectionalLight(0xffe2b4,2.45);
-  sun.position.set(-30,42,22);
+  const sun=new THREE.DirectionalLight(0xdcecff,1.7);
+  sun.position.set(-90,160,50);
   sun.castShadow=true;
   sun.shadow.mapSize.set(2048,2048);
-  sun.shadow.camera.left=-132;sun.shadow.camera.right=132;
-  sun.shadow.camera.top=132;sun.shadow.camera.bottom=-132;
-  sun.shadow.camera.near=1;sun.shadow.camera.far=320;
+  sun.shadow.camera.left=-190;sun.shadow.camera.right=190;
+  sun.shadow.camera.top=190;sun.shadow.camera.bottom=-190;
+  sun.shadow.camera.near=1;sun.shadow.camera.far=420;
   scene.add(sun);
 
   const solids=[],colliders=[],animations=[];
-  const readyMapPromise=addColdWarArena(scene,solids,colliders);
+  const readyMapPromise=addOrbitalComplexMap(scene,solids,colliders);
 
   const lightRig=new THREE.Group();
   lightRig.name="READY_MAP_LIGHT_RIG";
   scene.add(lightRig);
-  const lightColors=[0xffffff,0xffd39a,0xa8c8ff,0xc7ffbf];
+  const lightColors=[0xb8ddff,0xffb36b,0x77d4c2,0xb69cff];
   for(let i=0;i<8;i++){
-    const x=-60+(i%4)*40,z=-72+Math.floor(i/4)*144;
-    const p=new THREE.PointLight(lightColors[i%lightColors.length],1.05,28,2);
-    p.position.set(x,6,z);lightRig.add(p);
+    const x=-145+(i%4)*96;
+    const z=70+Math.floor(i/4)*-170;
+    const p=new THREE.PointLight(lightColors[i%lightColors.length],.8,34,2);
+    p.position.set(x,7,z);lightRig.add(p);
     animations.push({type:"point",light:p,phase:i*.8});
   }
 
-  const objective=new THREE.Group();
-  objective.name="READY_OBJECTIVE";
-  objective.position.set(0,0,0);
-  const objectiveBase=new THREE.Mesh(new THREE.CylinderGeometry(2.4,.0,0.36,20),new THREE.MeshStandardMaterial({color:0x20272c,metalness:.45,roughness:.45}));
-  objectiveBase.position.y=.18;objective.add(objectiveBase);
-  const objectiveCore=new THREE.Mesh(
-    new THREE.OctahedronGeometry(.52,1),
-    new THREE.MeshStandardMaterial({color:0xdff7ff,emissive:0x52bfff,emissiveIntensity:3.2,roughness:.16,metalness:.2})
-  );
-  objectiveCore.position.y=1.55;objective.add(objectiveCore);
-  const objectiveRing=new THREE.Mesh(
-    new THREE.TorusGeometry(1.25,.055,10,40),
-    new THREE.MeshStandardMaterial({color:0x76caff,emissive:0x2f8fd2,emissiveIntensity:2.1,roughness:.25,metalness:.1})
-  );
-  objectiveRing.rotation.x=Math.PI/2;objectiveRing.position.y=1.55;objective.add(objectiveRing);
-  const objectiveLight=new THREE.PointLight(0x55b9ff,2.4,12,2);
-  objectiveLight.position.set(0,1.6,0);objective.add(objectiveLight);
-  scene.add(objective);
-  animations.push({type:"objective",ring:objectiveRing,core:objectiveCore,light:objectiveLight});
-
+  // The imported arena already contains its own landmarks and lighting.
   const animate=(dt,now)=>{
     for(const item of animations){
       if(item.type==="objective"){
@@ -936,10 +1006,10 @@ export function createWorld(){
   };
 
   const spawnPoints=[
-    {host:[-104,-92],guest:[104,92]},
-    {host:[-104,92],guest:[104,-92]},
-    {host:[-92,-104],guest:[92,104]},
-    {host:[-92,104],guest:[92,-104]}
+    {host:[-142,42],guest:[142,42]},
+    {host:[-142,-110],guest:[142,-110]},
+    {host:[-70,-34],guest:[70,-34]},
+    {host:[-43,-88],guest:[43,-88]}
   ];
   return {
     scene,
