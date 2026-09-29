@@ -431,7 +431,9 @@ function buildMap() {
 
   makeObjective(root,animations,materials);
 
-  const environmentAssetPromise=addExternalEnvironmentProps(root);\n\n  const respawns=[
+  const environmentAssetPromise=addExternalEnvironmentProps(root);
+
+  const respawns=[
     {host:[-32,-32],guest:[32,32]},
     {host:[-31,-20],guest:[31,20]},
     {host:[-25,-33],guest:[25,33]}
