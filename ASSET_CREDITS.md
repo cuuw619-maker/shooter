@@ -26,3 +26,11 @@
 ## Fallback / original work
 
 The NIGHTLINE map geometry, tactical-character fallback, weapon fallback meshes, animation glue, lighting, collision layout and combat effects in this repository are project code and do not depend on the external models being available.
+
+
+### Ready-made map
+- Industrial Asset Yard: 25 GLB models from Kenney City Kit Industrial, CC0. Runtime source snapshot:
+  https://github.com/RAPHCVR/Krunker/tree/0ce0423004c117daac9b2b0a6d94d90ff5ffde5a/apps/client/public/assets/maps/kenney-industrial
+- The placement/layout and explicit gameplay collider set are based on the ready-made Industrial Asset Yard implementation in RAPHCVR/Krunker:
+  https://github.com/RAPHCVR/Krunker/blob/0ce0423004c117daac9b2b0a6d94d90ff5ffde5a/apps/client/src/mapAssets.ts
+  https://github.com/RAPHCVR/Krunker/blob/0ce0423004c117daac9b2b0a6d94d90ff5ffde5a/packages/shared/src/constants.ts
