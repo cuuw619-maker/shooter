@@ -82,8 +82,8 @@ export function updatePlayer(player, state, input, dt, collisionWorld) {
     player.position.z += dz;
   }
 
-  player.position.x=Math.max(-114.0,Math.min(114.0,player.position.x));
-  player.position.z=Math.max(-114.0,Math.min(114.0,player.position.z));
+  player.position.x=Math.max(-168.0,Math.min(168.0,player.position.x));
+  player.position.z=Math.max(-218.0,Math.min(98.0,player.position.z));
 
   data.verticalVelocity -= GRAVITY * dt;
   player.position.y += data.verticalVelocity * dt;
