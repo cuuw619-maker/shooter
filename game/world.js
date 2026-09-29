@@ -565,7 +565,38 @@ function addReadyMapColliders(solids,colliders){
     [-38,1.15,-12,2.4,2.3,8,0],[38,1.15,12,2.4,2.3,8,0],
     [-38,1.15,12,2.4,2.3,8,0],[38,1.15,-12,2.4,2.3,8,0]
   ];
-  for(const [x,y,z,sx,sy,sz,angle] of coverBoxes) addReadyCollider(solids,colliders,{x,y,z,sx,sy,sz,angle});
+  for(const [x,y,z,sx,sy,sz,angle] of coverBoxes) addReadyCollider(solids,colliders,{x,y,z,sx,sy,sz,angle,name:"ready_cover"});
+
+  const assetColliders=[
+    [-31,1.62,-24,2.7,3.2,4.5,Math.PI*.5,"building-a"],
+    [31.02,1.62,24,2.7,3.2,4.5,-Math.PI*.5,"building-b"],
+    [-30.69,1.38,23.79,4.6,2.7,4.1,Math.PI*.5,"building-c"],
+    [-20.94,1.39,-7.79,4.9,2.8,5,Math.PI*.5,"building-h"],
+    [30.45,1.81,-24,2.8,3.6,3.7,-Math.PI*.5,"building-e"],
+    [-14.95,2.02,-27.47,3.7,4,2.7,0,"building-f"],
+    [14,1.34,28,3.5,2.7,2.7,Math.PI,"building-g"],
+    [22.03,1.47,10,3.5,2.9,4.9,-Math.PI*.5,"building-k"],
+    [-20,2.55,16.68,3.2,5.1,5.1,0,"building-d"],
+    [-14.91,.77,28.58,2.1,1.5,2.7,0,"building-i"],
+    [14.91,.9,-28.58,2.1,1.8,2.7,Math.PI,"building-j"],
+    [20,1.29,-17,6,2.6,3.6,Math.PI,"building-p"],
+    [-7.55,1.92,-12.16,3.7,3.8,4.1,Math.PI*.5,"building-l"],
+    [8,1.52,13,3.4,3,2.6,-Math.PI*.5,"building-m"],
+    [.43,1.56,2.55,5.1,3.1,5.1,Math.PI*.25,"building-o"],
+    [-6.88,1.9,13.9,2.8,3.8,2,Math.PI*.5,"building-n"],
+    [7.98,.88,-13.46,3.5,1.8,4.3,-Math.PI*.5,"building-q"],
+    [-25,1.32,-32,4.7,2.6,2.4,0,"building-r"],
+    [.03,1.3,38,6.5,2.6,2.8,Math.PI,"building-s"],
+    [25,.96,32,3.3,1.9,2.6,Math.PI,"building-t"],
+    [34,1.15,0,.7,2.3,.7,0,"chimney-basic"],
+    [0,3.23,-27,3.8,6.4,3.8,0,"chimney-large"],
+    [0,2.69,27,1.3,5.4,1.3,0,"chimney-medium"],
+    [-34,.86,0,.8,1.7,.8,0,"chimney-small"],
+    [28,.46,-27,1.2,.9,1.9,Math.PI*.5,"detail-tank"]
+  ];
+  for(const [x,y,z,sx,sy,sz,angle,label] of assetColliders){
+    addReadyCollider(solids,colliders,{x,y,z,sx,sy,sz,angle,name:"ready_asset_"+label});
+  }
 }
 
 async function addReadyIndustrialMap(scene,solids,colliders){
