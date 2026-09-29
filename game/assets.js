@@ -150,9 +150,21 @@ export function createPlayerVisual(){
   const setExternalAction=(name,crossFade=.20)=>{
     if(!mixer||!actions[name]) return;
     const next=actions[name];
-    if(currentAction===next) return;
-    next.reset().play();
-    if(currentAction) currentAction.crossFadeTo(next,crossFade,false);
+    const isOnce=name==="jump"||name==="death";
+    if(currentAction===next){
+      if(name==="walk"||name==="run"){
+        next.setEffectiveTimeScale(name==="run"?Math.max(.8,Math.min(1.55,lastSpeed/5.6)):Math.max(.82,Math.min(1.35,lastSpeed/4.2)));
+      }
+      return;
+    }
+    next.reset();
+    next.enabled=true;
+    next.clampWhenFinished=isOnce;
+    next.setLoop(isOnce?THREE.LoopOnce:THREE.LoopRepeat,isOnce?1:Infinity);
+    next.setEffectiveTimeScale(name==="run"?Math.max(.8,Math.min(1.55,lastSpeed/5.6)):1);
+    next.play();
+    if(currentAction) currentAction.fadeOut(crossFade);
+    next.fadeIn(crossFade);
     currentAction=next;
   };
 
@@ -167,12 +179,12 @@ export function createPlayerVisual(){
         root.add(model);
         mixer=new THREE.AnimationMixer(model);
         for(const clip of (gltf.animations||[])){
-          const key=(clip.name||"").toLowerCase();
-          if(key.includes("idle")) actions.idle=mixer.clipAction(clip);
-          else if(key.includes("walk")) actions.walk=mixer.clipAction(clip);
-          else if(key.includes("run")) actions.run=mixer.clipAction(clip);
-          else if(key.includes("jump")) actions.jump=mixer.clipAction(clip);
-          else if(key.includes("death")) actions.death=mixer.clipAction(clip);
+          const key=(clip.name||"").toLowerCase().replace(/[^a-z0-9]+/g," ");
+          if(/idle|stand/.test(key)) actions.idle=mixer.clipAction(clip);
+          else if(/walk|walking/.test(key)) actions.walk=mixer.clipAction(clip);
+          else if(/run|running|sprint/.test(key)) actions.run=mixer.clipAction(clip);
+          else if(/jump|fall|air/.test(key)) actions.jump=mixer.clipAction(clip);
+          else if(/death|die/.test(key)) actions.death=mixer.clipAction(clip);
         }
         if(!actions.idle && gltf.animations?.[0]) actions.idle=mixer.clipAction(gltf.animations[0]);
         setExternalAction("idle",0);
@@ -189,14 +201,13 @@ export function createPlayerVisual(){
       if(mixer){
         let desired="idle";
         if(airborne && actions.jump) desired="jump";
-        else if(lastSpeed>4.4 && actions.run) desired="run";
+        else if(lastSpeed>4.5 && actions.run) desired="run";
         else if(moving && actions.walk) desired="walk";
         setExternalAction(desired);
-        mixer.update(dt);
+        mixer.update(Math.min(dt,.05));
       }else{
-        proceduralAnimator.update(dt,moving,lastSpeed,airborne);
+        proceduralAnimator.update(Math.min(dt,.05),moving,lastSpeed,airborne);
       }
-      root.position.y += Math.sin(performance.now()*.004)*.0015*(moving?1:.45);
     },
     dispose(){
       disposed=true;
