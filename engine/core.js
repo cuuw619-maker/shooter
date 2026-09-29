@@ -1,3 +1,5 @@
+import {createCollisionWorld} from "./collision.js?v=20260929-2";
+
 const THREE = window.THREE;
 
 export function createEngine({renderer, scene, camera, clock}) {
@@ -42,7 +44,9 @@ export function createEngine({renderer, scene, camera, clock}) {
 
     for (let i = effects.length - 1; i >= 0; i--) {
       const effect = effects[i];
-      if (effect.update(clampedDt, now) === false) effects.splice(i, 1);
+      if (typeof effect.update === "function" && effect.update(clampedDt, now) === false) {
+        effects.splice(i, 1);
+      }
     }
 
     smoothedFrameMs += ((clampedDt * 1000) - smoothedFrameMs) * 0.08;
