@@ -66,3 +66,21 @@ python -m http.server 8000
 ## Лицензия
 Код проекта: лицензия не задана.
 Внешние ассеты сохраняются с отдельными условиями исходных авторов; для CC0-ассета выше условия указаны явно.
+
+## Asset credits
+
+The game now prefers external 3D models and keeps procedural fallbacks so a failed remote request does not break gameplay.
+
+### Weapons
+- M4 / USP / AWP: public-domain models documented in [solcloud/Counter-Strike](https://github.com/solcloud/Counter-Strike/blob/25a292ff1b9d8ac876f6a96fdbbd6712bbbba803/www/resources/model/README.md), credited there to Quaternius.
+- Runtime source paths: `www/resources/model/m4.glb`, `usp.glb`, `awp.glb`.
+
+### Character
+- Quaternius Animated Human, CC0, loaded from the copy documented by [Glowin/messager](https://github.com/Glowin/messager/blob/e8b1fbbe6afc7874f3a4feac66f02519261b11a3/.omo/evidence/character-glb.txt).
+- Runtime source: `public/models/character.glb`.
+- The external character uses its skeletal Idle / Walk / Run / Jump clips through Three.js AnimationMixer.
+
+### Map
+The NIGHTLINE FACILITY environment is rebuilt in code from modular industrial geometry: hangars, containers, crates, pipes, fences, barrels, a watchtower, animated objective core, dynamic lamps and procedural surface textures. This keeps collision, mobile performance and offline fallback under project control.
+
+External models are optional at runtime. When they are unavailable, the local procedural M4/USP/AWP and tactical character remain active.
