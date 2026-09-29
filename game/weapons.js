@@ -144,7 +144,12 @@ export function createWeaponSystem(camera){
   for(const id of Object.keys(WEAPONS)) state[id]={mag:WEAPONS[id].mag,reserve:WEAPONS[id].reserve};
 
   const models={rifle:buildRifle(),pistol:buildPistol(),sniper:buildSniperFallback()};
-  Object.values(models).forEach(m=>{m.visible=false;root.add(m);});
+  Object.values(models).forEach(m=>{
+    m.visible=false;
+    m.userData.reloadBasePosition=m.position.clone();
+    m.userData.reloadBaseRotation=m.rotation.clone();
+    root.add(m);
+  });
   models.rifle.visible=true;
 
   const external={rifle:null,pistol:null,sniper:null};
@@ -168,6 +173,8 @@ export function createWeaponSystem(camera){
         loader.load(EXTERNALS[id],gltf=>{
           const model=normalizeExternalWeapon(gltf.scene);
           model.name="EXTERNAL_"+id.toUpperCase()+"_PUBLIC_DOMAIN";
+          model.userData.reloadBasePosition=model.position.clone();
+          model.userData.reloadBaseRotation=model.rotation.clone();
           addExternalMuzzle(model);
           root.add(model);
           external[id]=model;
@@ -195,36 +202,85 @@ export function createWeaponSystem(camera){
     if(reloading)return false;
     const cfg=WEAPONS[current],ammo=state[current];
     if(ammo.mag>=cfg.mag||ammo.reserve<=0)return false;
-    reloading=true;aiming=false;reloadTimer=now+cfg.reload;return true;
+    reloading=true;aiming=false;reloadTimer=now+cfg.reload;
+    return true;
   }
 
   function applyReloadAnimation(model,now){
-    const cfg=WEAPONS[current],p=Math.max(0,Math.min(1,1-Math.max(0,reloadTimer-now)/cfg.reload));
+    const cfg=WEAPONS[current];
+    const p=Math.max(0,Math.min(1,1-Math.max(0,reloadTimer-now)/cfg.reload));
     const part=model.userData.reloadParts?.[0];
-    if(part){
-      const down=Math.sin(Math.min(1,p*1.75)*Math.PI)*.22;
-      part.mesh.position.copy(part.from);part.mesh.position.y-=down;
-      part.mesh.rotation.x=-Math.sin(Math.min(1,p*1.4)*Math.PI)*.32;
-    }else if(model){
-      model.rotation.z=Math.sin(p*Math.PI)*.08;
-      model.position.y=-Math.sin(p*Math.PI)*.035;
+    const basePos=model.userData.reloadBasePosition||new THREE.Vector3();
+    const baseRot=model.userData.reloadBaseRotation||new THREE.Euler();
+
+    let drop=0,tilt=0,slide=0;
+    if(p<.18){
+      const t=p/.18;
+      drop=t;
+      tilt=t;
+    }else if(p<.54){
+      const t=(p-.18)/.36;
+      drop=1-t*.22;
+      tilt=1-t*.35;
+    }else if(p<.78){
+      const t=(p-.54)/.24;
+      drop=.78+t*.22;
+      tilt=.65-t*.55;
+      slide=Math.sin(t*Math.PI);
+    }else{
+      const t=(p-.78)/.22;
+      drop=1-t;
+      tilt=.10*(1-t);
+      slide=Math.sin(t*Math.PI*.5);
     }
+
+    const easedDrop=drop*drop*(3-2*drop);
+    if(part){
+      part.mesh.position.copy(part.from);
+      part.mesh.position.y-=easedDrop*.24;
+      part.mesh.position.z+=easedDrop*.03;
+      part.mesh.rotation.x=-easedDrop*.48;
+    }else{
+      model.position.copy(basePos);
+      model.position.y-=easedDrop*.08;
+      model.position.z+=easedDrop*.035;
+      model.rotation.copy(baseRot);
+      model.rotation.x-=tilt*.16;
+      model.rotation.z+=Math.sin(p*Math.PI)*.12;
+      model.rotation.y+=easedDrop*.08;
+    }
+
     if(model.userData.slide&&model.userData.slideBase){
       model.userData.slide.position.copy(model.userData.slideBase);
-      model.userData.slide.position.z+=Math.sin(p*Math.PI)*.13;
+      model.userData.slide.position.z+=slide*.16;
     }
     if(model.userData.bolt&&model.userData.boltBase){
       model.userData.bolt.position.copy(model.userData.boltBase);
-      model.userData.bolt.position.z+=Math.sin(p*Math.PI)*.18;
+      model.userData.bolt.position.z+=slide*.22;
+      model.userData.bolt.rotation.y=slide*.28;
     }
+
+    const handPhase=Math.sin(Math.min(1,p/.62)*Math.PI);
+    armRig.armL.rotation.x=(aiming?-.08:0)-handPhase*.28;
+    armRig.armL.rotation.z=handPhase*.20;
+    armRig.armR.rotation.x=(aiming?-.08:0)-handPhase*.46;
+    armRig.armR.rotation.z=-handPhase*.16;
+    armRig.armL.position.y=-.18-handPhase*.035;
+    armRig.armR.position.y=-.18-handPhase*.02;
   }
 
   function resetReloadPose(model){
     const part=model.userData.reloadParts?.[0];
     if(part){part.mesh.position.copy(part.from);part.mesh.rotation.set(0,0,0);}
     if(model.userData.slide&&model.userData.slideBase)model.userData.slide.position.copy(model.userData.slideBase);
-    if(model.userData.bolt&&model.userData.boltBase)model.userData.bolt.position.copy(model.userData.boltBase);
-    if(model&&!model.userData.reloadParts){model.rotation.z=0;model.position.y=0;}
+    if(model.userData.bolt&&model.userData.boltBase){
+      model.userData.bolt.position.copy(model.userData.boltBase);
+      model.userData.bolt.rotation.set(0,0,0);
+    }
+    if(model.userData.reloadBasePosition)model.position.copy(model.userData.reloadBasePosition);
+    if(model.userData.reloadBaseRotation)model.rotation.copy(model.userData.reloadBaseRotation);
+    armRig.armL.position.y=-.18;armRig.armL.rotation.set(aiming?-.08:0,0,0);
+    armRig.armR.position.y=-.18;armRig.armR.rotation.set(aiming?-.08:0,0,0);
   }
 
   function tick(now=performance.now(),events={}){
@@ -235,6 +291,10 @@ export function createWeaponSystem(camera){
     }
     if(boltTimer&&now>=boltTimer){boltTimer=0;events.onBolt?.();}
     recoil*=.82;equipBlend=Math.min(1,equipBlend+.08);
+    if(!reloading){
+      armRig.armL.position.y+=(-.18-armRig.armL.position.y)*.18;
+      armRig.armR.position.y+=(-.18-armRig.armR.position.y)*.18;
+    }
     const ease=1-(1-equipBlend)*(1-equipBlend);
     const idle=Math.sin(now*.0042)*.003,sx=Math.sin(now*.0026)*.004,sy=Math.cos(now*.0031)*.003,run=Math.abs(Math.cos(now*.008))*.004;
     const targetX=aiming?-.08:.42,targetY=aiming?-.29:-.34,targetZ=aiming?-.90:-.72;
