@@ -544,6 +544,7 @@ function addReadyCollider(solids,colliders,{x,y,z,sx,sy,sz,angle=0,name="ready_c
   const material=new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false});
   const mesh=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),material);
   mesh.position.set(x,y,z);mesh.rotation.y=angle;mesh.name=name;
+  mesh.updateMatrixWorld(true);
   solids.push(mesh);
   colliders.push({
     x,z,halfX:Math.abs(sx)/2,halfZ:Math.abs(sz)/2,angle,
